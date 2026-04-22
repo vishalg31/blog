@@ -6,7 +6,6 @@ import {
   CATEGORY_LABELS,
   CATEGORY_DESCRIPTIONS,
   formatDate,
-  formatDateShort,
   type Category,
 } from "@/lib/posts";
 import Footer from "@/components/Footer";
@@ -54,7 +53,7 @@ export default async function CategoryPage({
           <nav className="masthead-nav">
             <Link href="https://vishalbuilds.com">Home</Link>
             <Link href="/" className="active">Blog</Link>
-            <Link href="https://vishalbuilds.com/products">Products</Link>
+            <Link href="https://www.vishalbuilds.com/#projects">Products</Link>
           </nav>
         </div>
         <div className="masthead-title">
@@ -76,8 +75,7 @@ export default async function CategoryPage({
       {/* ─── CATEGORY BANNER ─── */}
       <section className="cat-banner">
         <div className="cat-banner-left">
-          <div className="cat-banner-label">Category Archive</div>
-          <h1 className="cat-banner-title">{label}</h1>
+<h1 className="cat-banner-title">{label}</h1>
           <p className="cat-banner-desc">{desc}</p>
         </div>
       </section>

@@ -19,7 +19,7 @@ export default function HomePage() {
           <nav className="masthead-nav">
             <Link href="https://vishalbuilds.com">Home</Link>
             <Link href="/" className="active">Blog</Link>
-            <Link href="https://vishalbuilds.com/products">Products</Link>
+            <Link href="https://www.vishalbuilds.com/#projects">Products</Link>
           </nav>
         </div>
         <div className="masthead-title">

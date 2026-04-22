@@ -60,7 +60,7 @@ export default function ArticleNav({ category, categoryLabel, title }: Props) {
         <nav className="article-nav-links" style={{ justifySelf: "end" }}>
           <Link href="https://vishalbuilds.com">Home</Link>
           <Link href="/">Blog</Link>
-          <Link href="https://vishalbuilds.com/products">Products</Link>
+          <Link href="https://www.vishalbuilds.com/#projects">Products</Link>
         </nav>
       </div>
     </div>
