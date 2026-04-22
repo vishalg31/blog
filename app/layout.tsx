@@ -20,7 +20,7 @@ const geist = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "Ramble On — Builder. Writer. Cricket Nerd.",
+  title: "Ramble On — Personal Musings",
   description:
     "Personal musings on building products, cricket, and cinema by Vishal Gayakwar.",
   metadataBase: new URL("https://blog.vishalbuilds.com"),
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
     locale: "en_US",
     url: "https://blog.vishalbuilds.com",
     siteName: "Ramble On",
-    title: "Ramble On — Builder. Writer. Cricket Nerd.",
+    title: "Ramble On — Personal Musings",
     description:
       "Personal musings on building products, cricket, and cinema by Vishal Gayakwar.",
     images: [{ url: "/api/og?title=Ramble%20On", width: 1200, height: 630 }],
@@ -41,7 +41,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     site: "@vishalg31",
     creator: "@vishalg31",
-    title: "Ramble On — Builder. Writer. Cricket Nerd.",
+    title: "Ramble On — Personal Musings",
     description:
       "Personal musings on building products, cricket, and cinema by Vishal Gayakwar.",
     images: ["/api/og?title=Ramble%20On"],
