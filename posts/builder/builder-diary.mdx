@@ -1,0 +1,163 @@
+---
+title: "Builder Diary"
+slug: "builder-diary"
+date: 2026-04-23
+category: builder
+tags: [building, journal, thoughts]
+description: "Running notes from the products I'm building. Raw thoughts - unfiltered"
+ogImage: "/blog/builder/builder2.jpg"
+---
+
+**Log #004: The Tax Finder Launch -- Multi-LLM Orchestration**
+
+• **Status**: 🚀 Launched / P0 Deployed
+
+• Project: Tax Finder (Old vs. New Regime Comparison)
+
+• AI Collaboration Level: 80% Logic (Claude/Codex) / 20% Integration
+(Human/Gemini)
+
+• Topic: Moving from \"Prompting\" to \"System Architecture.\"
+
+**TL;DR**
+Launched a privacy-first, zero-data-storage Tax Finder to navigate the
+April 2026 tax changes. The project proved that the \"multi-LLM\"
+approach---using different AI models for their specific strengths is the
+fastest way to ship.
+
+**The Build: The Three-Model Stack**
+
+This project was a masterclass in AI-assisted deployment. I didn\'t
+stick to one tool; I used a specialized stack:
+
+• ***The Architect (Claude):*** I brainstormed the idea with Claude, and
+it surprisingly generated the entire backend architecture and the
+initial UI. It understood the \"New Rules\" of 2026 and the logic for
+the detailed breakdown without much handholding.
+
+• ***The Integrator (Gemini Code Assist):*** I tried to use Gemini to
+plug the files together but found the speed to be a bottleneck today.
+Instead of waiting, I took the wheel and handled the deployment manually
+with Claude's guidance.
+
+• ***The Polisher (Codex):*** Once the core was running, I used Codex to
+refine the specific logic and add the final \"beautiful\" UI touches.
+
+
+![Dashboard screenshot](/blog/builder/tax1.jpg)
+*<a href="https://tax.vishalbuilds.com" target="_blank" rel="noopener noreferrer">Tax Finder</a>*
+
+**Human Insight: Privacy & Pain Points**
+
+As a PM, I knew the \"hook\" wasn\'t just the calculation---it was the
+trust. By making it open and ensuring it stores zero user data, I'm
+solving a key psychological barrier for people entering their salary
+details. The app feels \"light\" because it doesn\'t have the baggage of
+a database.
+
+**The Commit**
+
+Upgrading to a Claude Pro subscription to streamline the V2 rollout. I
+need to tighten my deployment pipeline, but for a V1 ship, this is a
+massive win.
+
+---------------------------------------------------------------------
+
+
+
+**Log #003: The V1 Launch -- Breaking the One-Day Myth**
+
+**Status**: 🚀 Launched \| Project: IPL Stat Engine \| AI Collab: 50%
+Logic / 50% Human QA & UI Polish
+
+**TL;DR**: It took a week, not a day, but the difference between
+\"generated code\" and "shipped product\" is in the manual quality
+check.
+
+![Dashboard screenshot](/blog/builder/iplstat.jpg)
+
+*<a href="https://cricket.vishalbuilds.com/stat-engine" target="_blank" rel="noopener noreferrer">IPL Stat Engine</a>*
+
+**The Build**:
+
+My P0 version became too big. I underestimated how much time it takes to
+move from \"AI can write this\" to \"This is 100% accurate for every
+user combination.\"
+
+**Human Insight**:
+
+AI is still a \"blind\" developer. I need to find a way to get UI
+automatically from sources like Figma or v0 because hand-coding the
+\"beautiful\" part is the current bottleneck. But for now, it's live and
+people are using it.
+
+**The Commit**:
+
+Gathering user feedback and finding a better design-to-code pipeline.
+
+
+---------------------------------------------------------------------
+
+
+**Log #002: The \"Visibility Gap\" and the V1 Scope Cut**
+
+**Status**: 🛠️ Refinement \| Project: IPL Stat Engine \| AI Collab: 60%
+Logic / 40% Manual UI & QA
+
+**TL;DR**: The \"one-day ship\" is a myth for data-heavy products;
+accuracy and mobile UI are the two front-line battles AI isn\'t winning
+yet.
+
+**The Build**:
+
+The scope for the Stat Engine exploded because \"close enough\" isn\'t
+good enough for sports fans.
+
+• The Logic Trap: AI writes queries in seconds but verifying accuracy
+across 5+ filters requires hours of manual QA.
+
+• The UI Bottleneck: AI lacks the visual feedback loop I have on
+localhost. It can\'t \"see\" the visual balance on a 6-inch screen.
+
+**Human Insight**:
+
+I've made the PM call to not ship every engaging idea in V1. The biggest
+win was the mobile version, precisely because I did the manual work the
+AI couldn\'t.
+
+**The Commit**:
+
+Finalizing data validation for the core query set.
+
+---------------------------------------------------------------------
+
+
+
+**Log #001: The \"Dashboard Trap\" and the 90% Logic Rule**
+
+**Status**: 🛠️ Building \| Project: IPL Stat Engine \| AI Collab: 90%
+Logic / 10% Human
+
+**TL;DR**: The backend logic was 90% there on the first try but making
+the data \"cool\" and mobile-friendly is where the real battle begins.
+
+**The Build**:
+
+The core logic for a ball-by-ball engine is easy to prompt, but the
+design is a trap. It is incredibly easy to accidentally build a boring
+\"corporate dashboard\" when dealing with sports data.
+
+• Iteration 1: Too \"data heavy.\"
+
+• Iteration 2: Split into Quick Search (query-based filters) and
+Matchups (Batter vs. Bowler).
+
+**Human Insight**:
+
+Fitting deep-dive stats into a mobile viewport is a nightmare. I'm
+currently fighting with a carousel system to keep the data accessible
+without cluttering the UI.
+
+**The Commit**:
+
+Finalizing the Kohli vs. Bumrah UI.

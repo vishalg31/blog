@@ -5,10 +5,15 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "new-post": "node scripts/new-post.js",
+    "publish": "node scripts/publish-post.js"
   },
   "dependencies": {
+    "@vercel/og": "^0.11.1",
+    "gray-matter": "^4.0.3",
     "next": "16.2.4",
+    "next-mdx-remote": "^6.0.0",
     "react": "19.2.4",
     "react-dom": "19.2.4"
   },
