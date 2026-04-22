@@ -27,15 +27,32 @@ export async function generateMetadata({
   const { category, slug } = await params;
   const post = getPostBySlug(category, slug);
   if (!post) return {};
+  const ogImage = post.ogImage
+    ? [{ url: post.ogImage, width: 1200, height: 630 }]
+    : [{ url: `/api/og?title=${encodeURIComponent(post.title)}&category=${post.category}`, width: 1200, height: 630 }];
+  const postUrl = `https://blog.vishalbuilds.com/${post.category}/${post.slug}`;
+
   return {
     title: `${post.title} — Ramble On`,
     description: post.description,
+    alternates: { canonical: postUrl },
     openGraph: {
+      type: "article",
+      url: postUrl,
       title: post.title,
       description: post.description,
-      images: post.ogImage
-        ? [{ url: post.ogImage }]
-        : [{ url: `/api/og?title=${encodeURIComponent(post.title)}&category=${post.category}` }],
+      images: ogImage,
+      publishedTime: post.date,
+      authors: ["Vishal Gayakwar"],
+      tags: post.tags,
+    },
+    twitter: {
+      card: "summary_large_image",
+      site: "@vishalg31",
+      creator: "@vishalg31",
+      title: post.title,
+      description: post.description,
+      images: ogImage.map((i) => i.url),
     },
   };
 }
@@ -54,8 +71,22 @@ export default async function PostPage({
     .filter((p) => p.slug !== slug)
     .slice(0, 3);
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    headline: post.title,
+    description: post.description,
+    author: { "@type": "Person", name: "Vishal Gayakwar", url: "https://vishalbuilds.com" },
+    publisher: { "@type": "Organization", name: "Ramble On", url: "https://blog.vishalbuilds.com" },
+    datePublished: post.date,
+    url: `https://blog.vishalbuilds.com/${post.category}/${post.slug}`,
+    ...(post.ogImage && { image: `https://blog.vishalbuilds.com${post.ogImage}` }),
+    keywords: post.tags.join(", "),
+  };
+
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <ArticleNav category={category} categoryLabel={label} title={post.title} />
       <div className="article-page-body">
         {/* ─── POST LAYOUT ─── */}

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Playfair_Display, Geist } from "next/font/google";
+import { Analytics } from "@vercel/analytics/react";
 import StickyHeader from "@/components/StickyHeader";
 import "./globals.css";
 
@@ -21,13 +22,29 @@ const geist = Geist({
 export const metadata: Metadata = {
   title: "Ramble On — Builder. Writer. Cricket Nerd.",
   description:
-    "Independent dispatches on building, cricket & cinema by Vishal Gayakwar.",
+    "Personal musings on building products, cricket, and cinema by Vishal Gayakwar.",
   metadataBase: new URL("https://blog.vishalbuilds.com"),
+  alternates: {
+    canonical: "https://blog.vishalbuilds.com",
+  },
   openGraph: {
     type: "website",
     locale: "en_US",
     url: "https://blog.vishalbuilds.com",
     siteName: "Ramble On",
+    title: "Ramble On — Builder. Writer. Cricket Nerd.",
+    description:
+      "Personal musings on building products, cricket, and cinema by Vishal Gayakwar.",
+    images: [{ url: "/api/og?title=Ramble%20On", width: 1200, height: 630 }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    site: "@vishalg31",
+    creator: "@vishalg31",
+    title: "Ramble On — Builder. Writer. Cricket Nerd.",
+    description:
+      "Personal musings on building products, cricket, and cinema by Vishal Gayakwar.",
+    images: ["/api/og?title=Ramble%20On"],
   },
 };
 
@@ -41,6 +58,7 @@ export default function RootLayout({
       <body>
         <StickyHeader />
         {children}
+        <Analytics />
       </body>
     </html>
   );
