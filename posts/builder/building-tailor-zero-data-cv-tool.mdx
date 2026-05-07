@@ -1,0 +1,81 @@
+---
+title: "Building Tailor: A Zero-Data CV Tool That Lives in Your Browser"
+slug: "building-tailor-zero-data-cv-tool"
+date: 2026-05-07
+category: builder
+tags: [building, ai, gemini, product, privacy]
+description: "How I built a CV tailoring tool using the Gemini API, with zero server storage, real-time streaming, and a privacy-first architecture."
+ogImage: "/blog/builder/tailor_cover.jpg"
+---
+
+Some products take time to get right. This one did.
+
+## The Problem
+
+Every senior PM I know has a master CV. A three-page document with ten years of work crammed in, annotated with notes like "use for fintech roles" or "cut the Amazon section for startups."
+
+They tailor it. Manually. Every time.
+
+I've done it hundreds of times. Open the JD, open the CV, pick out the keywords, rewrite three bullets, adjust the summary. Forty minutes on a good day. An hour and a half when the role is complicated.
+
+If you're serious about a job search (even a passive one), you might do this twenty times. That's a full workday gone, doing the same cognitive task on repeat.
+
+## The Idea
+
+I didn't start with "let me build an AI CV tool." There are dozens of those. Most upload your CV to a server, run it through GPT-4, and store your data somewhere you'll never fully understand.
+
+I wanted to flip that: **what if the AI does the work, but your data never leaves the browser?**
+
+The idea took longer than the build. Getting the positioning right was the real work: zero-data as a genuine architectural constraint, ATS scoring that's actually calibrated rather than a number that makes you feel good, and a PDF you can send straight to a recruiter without reformatting. Each of those took real decisions, not just code.
+
+One constraint shaped everything else. No auth. No database. No backend storage. The CV parses once, lives in IndexedDB, and tailoring happens through a serverless route that sees your text for 200ms and immediately discards it.
+
+It also gave me a product promise worth saying out loud: *"A perfectly tailored, ATS-ready resume in 60 seconds. Your data never leaves your browser."* For a Senior PM pasting 15 years of employment history into a random web tool, that's the entire reason to try it.
+
+## Implementation
+
+The app has three core flows.
+
+**Parsing:** User uploads a PDF or DOCX. A serverless route extracts the raw text, then sends it to Gemini to map into structured JSON across experience, education, and skills. Validates the output before anything touches IndexedDB. Fires once per CV. Same file uploaded again gets the cached result, zero API calls.
+
+**Tailoring:** User pastes a JD. The app sends the structured CV plus the JD text to Gemini, which rewrites bullets for that specific role and returns a match score with gap analysis. This streams, so you watch the bullets rewrite in real time, word by word. Same JD pasted again pulls the cached output with no second call.
+
+**Export:** Two paths. Copy individual bullets from a side-by-side word-level diff view, or download a formatted PDF. Everything runs client-side. No server rendering.
+
+The trickiest implementation problem had nothing to do with AI. It was session state. How do you make a stateful single-page app survive a browser refresh without a backend? On every load, the app checks IndexedDB and puts you back exactly where you were: parsed CV, tailored output, JD text. The user never notices the refresh happened.
+
+![Tailor in action](/blog/builder/tailorcontent.jpg)
+
+## The API
+
+This was my first time building seriously with the Gemini API and Google AI Studio. I went in expecting to spend two days on the API layer and came out with a proper understanding of the whole ecosystem: model tiers, free tier limits, streaming, fallback strategies, how the prompt cache works. You only understand this stuff properly when you build something real with it.
+
+I used the free tier throughout. The original plan was Gemini 2.5 Pro for tailoring and Flash for parsing. In practice, a newer, faster model handled both well and had far more generous free tier limits. Every route uses a three-tier fallback so the app degrades gracefully if one model is overloaded.
+
+The biggest prompt engineering lesson: **word constraints beat vague instructions every time**. Telling the model exactly how long each rewritten bullet should be produced far more consistent output than any instruction like "keep it concise." Models follow explicit budgets. They ignore adjectives.
+
+Streaming also introduces failure modes you won't find in the docs. When an error happens mid-stream, the model can't send back an HTTP error code because the response has already started. You only discover this in production.
+
+## Design
+
+I gave myself one brief: "Elite Glass." Something that feels like a premium Mac app, not a SaaS product with a pricing page three clicks away.
+
+Playfair Display for headlines, in italic, gives the UI editorial weight that Geist alone can't. No card grids anywhere. Typographic hierarchy and hairline dividers handle the structure.
+
+Light mode is `#F5F5F7`, Apple's background. Dark mode is near-black with emerald accents kept deliberately restrained. Glassmorphism in exactly two places: the diff view and the PDF preview pane. Nowhere else. Overuse is what makes it look cheap.
+
+Both themes were always going to ship. Senior PMs work late. A tool that only looks right in light mode feels like it wasn't finished.
+
+## Learnings
+
+**The idea is the hard part.** I spent more time getting the positioning right than writing code. Zero-data sounds like a technical decision but it's really a product decision. ATS scoring sounds like a feature but calibrating it to be actually useful took more iteration than anything else in the build.
+
+**Prompt engineering is product work.** The gap between a good tailored bullet and a bad one came down entirely to the constraints in the prompt, not the model. I spent more time on prompts than on any individual component.
+
+**Build with the tools, not around them.** I used Claude for spec and brainstorming, Claude Code for execution. The combination meant I could move from idea to shipped product at a pace that wouldn't have been possible otherwise. It's not a shortcut. You still have to understand every decision. But it compresses the distance between thinking and building.
+
+**Ship with a guardrail, not a gate.** Rate limiting at launch is client-side only. It's enough to prevent accidental hammering. You don't need full infrastructure on day one. You need something that won't embarrass you.
+
+> The best privacy feature is architectural, not a policy. Zero-data from the start meant I never had to decide what to store. That decision was already made.
+
+Tailor is live at [tailor.vishalbuilds.com](https://tailor.vishalbuilds.com). Free, no login, no data stored.
