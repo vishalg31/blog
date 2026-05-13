@@ -529,8 +529,8 @@ p:last-child { margin-bottom: 0; }
 }
 .check-list { list-style: none; }
 .check-item {
-  display: grid; grid-template-columns: 48px 1fr auto 36px;
-  align-items: center; gap: 20px; padding: 0;
+  display: grid; grid-template-columns: 48px 1fr auto 36px; grid-template-rows: auto auto;
+  align-items: center; gap: 20px 20px; padding: 0;
   border-top: 1px solid var(--border);
   opacity: 0; transform: translateX(-10px);
   transition: opacity 0.4s ease, transform 0.4s ease;
@@ -565,6 +565,26 @@ p:last-child { margin-bottom: 0; }
   text-transform: uppercase; color: var(--accent); margin-bottom: 5px;
 }
 .ch-tooltip-text { font-size: 13px; line-height: 1.55; color: rgba(245,244,239,0.75); }
+
+/* inline detail — expands below each row on scroll reveal */
+.ch-inline-detail {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: rgba(10,10,10,0.55);
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  transition: max-height 0.4s ease 0.3s, opacity 0.35s ease 0.35s, padding-bottom 0.35s ease 0.3s;
+}
+.check-item.checked .ch-inline-detail {
+  max-height: 80px;
+  opacity: 1;
+  padding-bottom: 16px !important;
+}
 
 .engine-note {
   margin-top: 52px; padding: 30px 32px;
@@ -714,6 +734,7 @@ p:last-child { margin-bottom: 0; }
   .reveal { transition: none !important; opacity: 1 !important; transform: none !important; }
   .check-item { transition: none !important; opacity: 1 !important; transform: none !important; }
   .ch-pass { transition: none !important; opacity: 1 !important; transform: none !important; }
+  .ch-inline-detail { transition: none !important; max-height: 80px !important; opacity: 1 !important; padding-bottom: 16px !important; }
   .scrolly-step { transition: none !important; opacity: 1 !important; }
   .lc-dot { animation: none !important; background: var(--ink); }
   .viz-1-spinner { animation: none !important; border-top-color: var(--accent); }
@@ -860,7 +881,7 @@ p:last-child { margin-bottom: 0; }
         <div class="fsn-node">
           <div class="fsn-num">01</div>
           <div class="fsn-name">Case Arrives</div>
-          <div class="fsn-detail">A Paragon NOPT or AFE case hits the TFT queue. Eligible for automation. No judgment needed.</div>
+          <div class="fsn-detail">A Paragon case hits the TFT queue. Eligible for automation. No judgment needed.</div>
         </div>
         <div class="fsn-node">
           <div class="fsn-num">02</div>
@@ -1033,42 +1054,49 @@ p:last-child { margin-bottom: 0; }
         <span class="ch-cond">Must be AZNG</span>
         <div class="ch-pass"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7l4 4 6-6"/></svg></div>
         <div class="ch-tooltip"><div class="ch-tooltip-label">If operator check fails</div><div class="ch-tooltip-text">Trailer is skipped. Non-AZNG trailers may have different handling rules APEX isn't built to navigate.</div></div>
+        <div class="ch-inline-detail">Trailer is skipped. Non-AZNG trailers may have different handling rules APEX isn't built to navigate.</div>
       </li>
       <li class="check-item" data-delay="120">
         <span class="ch-num">02</span><span class="ch-name">Availability</span>
         <span class="ch-cond">Not flagged unavailable</span>
         <div class="ch-pass"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7l4 4 6-6"/></svg></div>
         <div class="ch-tooltip"><div class="ch-tooltip-label">If availability check fails</div><div class="ch-tooltip-text">Trailer is flagged as out-of-service. Attaching a VRID would be incorrect. Skip, try next.</div></div>
+        <div class="ch-inline-detail">Trailer is flagged as out-of-service. Attaching a VRID would be incorrect. Skip, try next.</div>
       </li>
       <li class="check-item" data-delay="240">
         <span class="ch-num">03</span><span class="ch-name">Load status</span>
         <span class="ch-cond">No existing VRID assigned</span>
         <div class="ch-pass"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7l4 4 6-6"/></svg></div>
         <div class="ch-tooltip"><div class="ch-tooltip-label">If load status check fails</div><div class="ch-tooltip-text">Trailer already has a load or VRID attached. Double-attaching causes a conflict in Paragon. Move on.</div></div>
+        <div class="ch-inline-detail">Trailer already has a load or VRID attached. Double-attaching causes a conflict in Paragon. Move on.</div>
       </li>
       <li class="check-item" data-delay="360">
         <span class="ch-num">04</span><span class="ch-name">Movement</span>
         <span class="ch-cond">Not in active transit</span>
         <div class="ch-pass"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7l4 4 6-6"/></svg></div>
         <div class="ch-tooltip"><div class="ch-tooltip-label">If movement check fails</div><div class="ch-tooltip-text">Trailer is in transit between locations. Attaching while moving creates a data inconsistency. Skip.</div></div>
+        <div class="ch-inline-detail">Trailer is in transit between locations. Attaching while moving creates a data inconsistency. Skip.</div>
       </li>
       <li class="check-item" data-delay="480">
         <span class="ch-num">05</span><span class="ch-name">Notes</span>
         <span class="ch-cond">No red-flag keywords</span>
         <div class="ch-pass"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7l4 4 6-6"/></svg></div>
         <div class="ch-tooltip"><div class="ch-tooltip-label">If notes check fails</div><div class="ch-tooltip-text">Notes contain a red-flag keyword (DAMAGED, YELLOW TAG, STORAGE...). Trailer needs human review before use.</div></div>
+        <div class="ch-inline-detail">Notes contain a red-flag keyword (DAMAGED, YELLOW TAG, STORAGE...). Trailer needs human review before use.</div>
       </li>
       <li class="check-item" data-delay="600">
         <span class="ch-num">06</span><span class="ch-name">Status</span>
         <span class="ch-cond">Must be empty, verified live</span>
         <div class="ch-pass"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7l4 4 6-6"/></svg></div>
         <div class="ch-tooltip"><div class="ch-tooltip-label">If status check fails</div><div class="ch-tooltip-text">Trailer shows as non-empty after clicking in. Only verified-empty trailers can be pre-assigned. Try next.</div></div>
+        <div class="ch-inline-detail">Trailer shows as non-empty after clicking in. Only verified-empty trailers can be pre-assigned. Try next.</div>
       </li>
       <li class="check-item" data-delay="720">
         <span class="ch-num">07</span><span class="ch-name">Condition</span>
         <span class="ch-cond">Not damaged or in storage</span>
         <div class="ch-pass"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7l4 4 6-6"/></svg></div>
         <div class="ch-tooltip"><div class="ch-tooltip-label">If condition check fails</div><div class="ch-tooltip-text">Trailer is in storage or has a damaged/red condition flag. Not available for active assignments.</div></div>
+        <div class="ch-inline-detail">Trailer is in storage or has a damaged/red condition flag. Not available for active assignments.</div>
       </li>
     </ul>
 
