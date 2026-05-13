@@ -5,11 +5,11 @@ import stories from "@/stories.json";
 export const metadata: Metadata = {
   title: "Stories — Vishal Builds",
   description:
-    "Product stories, build logs, and case studies from Vishal Gayakwar. Long-form accounts of things I've built, broken, and shipped.",
+    "Products and automation stories from Vishal Gayakwar. Long-form accounts of things I've built, broken, and shipped.",
   openGraph: {
     title: "Stories — Vishal Builds",
     description:
-      "Product stories, build logs, and case studies from Vishal Gayakwar.",
+      "Products and automation stories from Vishal Gayakwar.",
     url: "https://blog.vishalbuilds.com/stories",
   },
 };
@@ -336,6 +336,19 @@ export default function StoriesPage() {
           letter-spacing: 0.08em;
           text-transform: uppercase;
           color: #B0A89E;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+        .sc-caption-cta {
+          opacity: 0;
+          color: #1A1714;
+          font-weight: 600;
+          letter-spacing: 0.06em;
+          transition: opacity 180ms ease;
+        }
+        .sc-wrapper:hover .sc-caption-cta {
+          opacity: 1;
         }
 
         /* ── Mobile ── */
@@ -379,7 +392,7 @@ export default function StoriesPage() {
       <main className="stories-page">
         <header className="stories-header">
           <div className="stories-eyebrow">
-            Vishal Gayakwar &nbsp;&middot;&nbsp; Build Logs &amp; Case Studies
+            Vishal Gayakwar &nbsp;&middot;&nbsp; Products &amp; Automation
           </div>
           <h1 className="stories-title">Stories</h1>
           <p className="stories-subtitle">
@@ -416,6 +429,7 @@ export default function StoriesPage() {
                 <div className="sc-caption-kicker">{s.kicker}</div>
                 <div className="sc-caption-meta">
                   {s.category} &nbsp;&middot;&nbsp; {s.date}
+                  <span className="sc-caption-cta">Read story &rarr;</span>
                 </div>
               </div>
             </Link>
@@ -427,6 +441,15 @@ export default function StoriesPage() {
         <Link href="/" className="stories-footer-brand">
           Ramble<span>On</span>
         </Link>
+        <div style={{
+          fontFamily: "ui-monospace, 'Cascadia Code', monospace",
+          fontSize: 10,
+          letterSpacing: "0.12em",
+          textTransform: "uppercase",
+          color: "#8A8A85",
+        }}>
+          Made by Vishal
+        </div>
         <div className="stories-footer-links">
           <a href="https://vishalbuilds.com/about" target="_blank" rel="noopener noreferrer">About</a>
           <a href="https://www.linkedin.com/in/vishalgayakwar/" target="_blank" rel="noopener noreferrer">LinkedIn</a>
