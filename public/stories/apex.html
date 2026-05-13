@@ -1,0 +1,1473 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>APEX: How I Built a Browser Agent to Do the Boring Work</title>
+<meta name="description" content="An internal automation agent built with Python and Playwright that handles ~34% of operational cases end-to-end, no human needed.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/scrollama"></script>
+<style>
+/* ── RESET ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 16px; scroll-behavior: smooth; }
+
+/* ── TOKENS — Neo-Grid Bold palette ── */
+:root {
+  --bg:     #ECECE8;
+  --ink:    #0A0A0A;
+  --paper:  #F5F4EF;
+  --accent: #E6FF3D;
+  --muted:  #8A8A85;
+  --border: rgba(10,10,10,0.1);
+  --f-body: 'Space Grotesk', 'Helvetica Neue', sans-serif;
+  --f-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--f-body);
+  font-size: 18px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: inherit; text-decoration: none; }
+p { margin-bottom: 1.15em; }
+p:last-child { margin-bottom: 0; }
+
+/* ── SCROLL TRAILER ── */
+#scroll-header {
+  position: fixed; top: 0; left: 0; right: 0;
+  height: 18px; z-index: 300; pointer-events: none;
+}
+#sh-track {
+  position: absolute; bottom: 2px; left: 0; right: 0;
+  height: 2px; background: rgba(10,10,10,0.08);
+}
+#sh-fill {
+  position: absolute; bottom: 2px; left: 0;
+  height: 2px; background: var(--accent); opacity: 0.8;
+  width: 0%;
+}
+#sh-trailer {
+  position: absolute; bottom: 0; left: 0;
+  line-height: 0; will-change: transform;
+}
+
+/* ── CURSOR DOT ── */
+#cursor-dot {
+  position: fixed; width: 8px; height: 8px;
+  background: var(--accent); border-radius: 50%;
+  pointer-events: none; z-index: 500;
+  opacity: 0; top: 0; left: 0;
+  transition: opacity 0.3s ease;
+}
+
+/* ── BACK LINKS ── */
+.back-links {
+  position: fixed; top: 20px; left: 24px; z-index: 200;
+  display: flex; align-items: center; gap: 6px;
+}
+.back-link {
+  font-family: var(--f-mono); font-size: 10px;
+  letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--paper); background: var(--ink);
+  padding: 9px 16px; display: inline-flex; align-items: center; gap: 8px;
+  transition: background 0.18s, color 0.18s;
+}
+.back-link:hover { background: var(--accent); color: var(--ink); }
+.back-link svg { width: 11px; height: 11px; flex-shrink: 0; }
+
+/* ── DOT NAVIGATION ── */
+#dot-nav {
+  position: fixed; right: 22px; top: 50%;
+  transform: translateY(-50%);
+  display: flex; flex-direction: column; gap: 11px;
+  z-index: 200; padding: 10px 4px;
+  background: rgba(255,255,255,0.06);
+  backdrop-filter: blur(6px);
+  border-radius: 14px;
+}
+.dot-item {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: transparent;
+  border: 1.5px solid rgba(128,128,128,0.45);
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.15);
+  cursor: pointer; padding: 0; display: block;
+  transition: background 0.25s ease, transform 0.25s ease, border-color 0.25s ease;
+}
+.dot-item.dot-active {
+  background: var(--accent); border-color: var(--accent);
+  transform: scale(1.6);
+}
+.dot-item:hover:not(.dot-active) { border-color: rgba(128,128,128,0.8); transform: scale(1.2); }
+
+/* ── LAYOUT ── */
+.container      { max-width: 720px;  margin: 0 auto; padding: 0 40px; }
+.container-wide { max-width: 1080px; margin: 0 auto; padding: 0 40px; }
+
+/* ── SHARED TYPOGRAPHY ── */
+.section-label {
+  font-family: var(--f-mono); font-size: 10px;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 36px;
+  display: flex; align-items: center; gap: 18px;
+}
+.section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+.big-headline {
+  font-size: clamp(32px, 5vw, 60px); font-weight: 700;
+  line-height: 1.05; letter-spacing: -0.02em;
+  text-transform: uppercase; margin-bottom: 40px;
+}
+.narrative { font-size: 19px; line-height: 1.72; color: rgba(10,10,10,0.72); max-width: 58ch; }
+.narrative strong { color: var(--ink); font-weight: 600; }
+.narrative em { font-style: normal; background: var(--accent); padding: 0 3px; color: var(--ink); }
+
+/* ═══════════════════════════════════════
+   HERO
+═══════════════════════════════════════ */
+#hero {
+  min-height: 100svh; background: var(--ink); color: var(--paper);
+  display: flex; flex-direction: column; justify-content: flex-end;
+  padding: 60px 40px 56px; position: relative; overflow: hidden;
+  cursor: none;
+}
+#hero::before {
+  content: ''; position: absolute; inset: 0;
+  background-image:
+    repeating-linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+    repeating-linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+  background-size: 80px 80px; pointer-events: none;
+}
+.hero-blockmark {
+  position: absolute; top: 40px; right: 40px;
+  width: 56px; height: 56px;
+  display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 5px;
+}
+.hero-blockmark span:nth-child(1) { background: rgba(255,255,255,0.15); }
+.hero-blockmark span:nth-child(2) { background: var(--accent); }
+.hero-blockmark span:nth-child(3) { background: transparent; }
+.hero-blockmark span:nth-child(4) { background: rgba(255,255,255,0.15); }
+.hero-kicker {
+  font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.14em;
+  text-transform: uppercase; color: rgba(245,244,239,0.4); margin-bottom: 20px; position: relative;
+}
+.hero-title {
+  font-size: clamp(88px, 17vw, 210px); font-weight: 700;
+  line-height: 0.88; letter-spacing: -0.03em; text-transform: uppercase;
+  color: var(--paper); position: relative; margin-bottom: 36px;
+}
+.hero-title span { color: var(--accent); }
+.hero-sub {
+  font-size: clamp(17px, 2.2vw, 24px); font-weight: 400; line-height: 1.45;
+  color: rgba(245,244,239,0.6); max-width: 48ch; position: relative; margin-bottom: 48px;
+}
+.hero-meta {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 0;
+  border-top: 1px solid rgba(255,255,255,0.1); padding-top: 24px; position: relative;
+}
+.hero-meta-item {
+  font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+  color: rgba(245,244,239,0.35); padding-right: 24px; margin-right: 24px;
+  border-right: 1px solid rgba(255,255,255,0.1);
+}
+.hero-meta-item:last-child { border-right: none; padding-right: 0; margin-right: 0; }
+.hero-scroll {
+  position: absolute; bottom: 28px; right: 40px;
+  font-family: var(--f-mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase;
+  color: rgba(255,255,255,0.18); writing-mode: vertical-rl; transform: rotate(180deg);
+}
+
+/* ═══════════════════════════════════════
+   THE QUEUE
+═══════════════════════════════════════ */
+#queue { padding: 120px 0 100px; background: var(--bg); }
+
+/* ═══════════════════════════════════════
+   THE PATTERN — with live counter
+═══════════════════════════════════════ */
+#pattern { padding: 100px 0 100px; background: var(--ink); color: var(--paper); }
+#pattern .section-label { color: rgba(255,255,255,0.25); }
+#pattern .section-label::after { background: rgba(255,255,255,0.08); }
+
+.big-stat {
+  font-size: clamp(88px, 15vw, 168px); font-weight: 700;
+  letter-spacing: -0.04em; line-height: 0.88;
+  color: var(--accent); display: block; margin-bottom: 28px;
+}
+.pattern-body {
+  font-size: clamp(18px, 2.4vw, 26px); font-weight: 400; line-height: 1.5;
+  color: rgba(245,244,239,0.65); max-width: 50ch; margin-bottom: 56px;
+}
+.manual-flow { border-top: 1px solid rgba(255,255,255,0.08); padding-top: 36px; margin-bottom: 48px; }
+.manual-flow-label {
+  font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.12em;
+  text-transform: uppercase; color: rgba(255,255,255,0.25); margin-bottom: 16px;
+}
+.manual-flow-steps { font-size: 15px; color: rgba(245,244,239,0.5); line-height: 1.9; }
+.manual-flow-steps span { color: rgba(245,244,239,0.2); margin: 0 6px; }
+.manual-flow-note {
+  margin-top: 18px; font-family: var(--f-mono); font-size: 10px;
+  letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent);
+}
+
+/* ── LIVE COUNTER ── */
+.live-counter {
+  display: grid; grid-template-columns: auto 1fr;
+  gap: 0; border: 1px solid rgba(255,255,255,0.1);
+}
+.lc-pulse-col {
+  background: var(--accent); padding: 28px 24px;
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+}
+.lc-dot {
+  width: 10px; height: 10px; border-radius: 50%; background: var(--ink);
+  animation: lc-pulse 1.6s ease-in-out infinite;
+}
+@keyframes lc-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.7); }
+}
+.lc-live-label {
+  font-family: var(--f-mono); font-size: 9px; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--ink); writing-mode: vertical-rl;
+  transform: rotate(180deg);
+}
+.lc-body { padding: 28px 32px; }
+.lc-description {
+  font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.1em;
+  text-transform: uppercase; color: rgba(255,255,255,0.35); margin-bottom: 10px;
+}
+.lc-number {
+  font-size: clamp(48px, 8vw, 80px); font-weight: 700;
+  letter-spacing: -0.03em; line-height: 1; color: var(--paper);
+  font-variant-numeric: tabular-nums;
+}
+.lc-unit {
+  font-family: var(--f-mono); font-size: 11px; letter-spacing: 0.08em;
+  text-transform: uppercase; color: rgba(255,255,255,0.3); margin-top: 8px;
+}
+.lc-rate {
+  margin-top: 16px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,0.08);
+  font-family: var(--f-mono); font-size: 9px; letter-spacing: 0.1em;
+  text-transform: uppercase; color: rgba(255,255,255,0.2);
+}
+
+/* ═══════════════════════════════════════
+   THE GAP
+═══════════════════════════════════════ */
+#gap { padding: 100px 40px; background: var(--accent); color: var(--ink); }
+.gap-inner { max-width: 760px; margin: 0 auto; }
+.gap-rule { width: 44px; height: 4px; background: var(--ink); margin-bottom: 40px; }
+.gap-statement {
+  font-size: clamp(26px, 4vw, 50px); font-weight: 700;
+  line-height: 1.1; letter-spacing: -0.02em; text-transform: uppercase; margin-bottom: 40px;
+}
+.gap-statement.dim { opacity: 0.45; font-size: clamp(20px, 3vw, 38px); }
+
+/* ═══════════════════════════════════════
+   WHAT APEX IS — horizontal flow + time comparison
+═══════════════════════════════════════ */
+#what { padding: 120px 0 0; background: var(--bg); }
+
+/* ── HORIZONTAL FLOW (sticky scroll-driven) ── */
+#flow-sticky-outer {
+  height: 240vh; position: relative;
+  margin: 64px 0 0;
+}
+#flow-sticky-inner {
+  position: sticky; top: 80px;
+  padding: 0 40px; max-width: 1080px; margin: 0 auto;
+  overflow: visible;
+}
+.fsn-label-row {
+  font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 24px;
+  display: flex; align-items: center; gap: 16px;
+}
+.fsn-label-row::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+.fsn-row {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+}
+.fsn-node {
+  border: 1.5px solid var(--ink); padding: 28px 22px;
+  opacity: 0.1;
+  will-change: opacity, transform;
+  transition: background 0.35s ease, border-color 0.35s ease;
+}
+.fsn-node + .fsn-node { border-left: none; }
+.fsn-node.fsn-done { background: var(--paper); }
+.fsn-node.fsn-active { background: var(--accent); }
+.fsn-num {
+  font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 14px;
+}
+.fsn-node.fsn-active .fsn-num { color: rgba(10,10,10,0.45); }
+.fsn-name {
+  font-size: 14px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.02em; margin-bottom: 12px; line-height: 1.2;
+}
+.fsn-detail {
+  font-size: 12px; line-height: 1.65; color: rgba(10,10,10,0.5);
+}
+.fsn-node.fsn-active .fsn-detail { color: rgba(10,10,10,0.7); }
+.fsn-node.fsn-done .fsn-detail { color: rgba(10,10,10,0.4); }
+/* scroll-past cue below the sticky panel */
+.fsn-scroll-cue {
+  margin-top: 28px;
+  justify-content: center;
+  font-family: var(--f-mono); font-size: 9px; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--muted);
+  display: flex; align-items: center; gap: 8px;
+}
+.fsn-scroll-cue::before, .fsn-scroll-cue::after {
+  content: ''; display: block; width: 28px; height: 1px; background: var(--border);
+}
+
+/* ── TIME COMPARISON ── */
+#what-after { padding: 72px 0 100px; }
+.time-compare-wrap {
+  margin: 56px 0;
+  border: 1.5px solid var(--ink);
+}
+.tc-header {
+  background: var(--ink); color: var(--paper);
+  padding: 14px 24px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.tc-header-label { font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; }
+.tc-replay {
+  font-family: var(--f-mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase;
+  background: none; border: 1px solid rgba(255,255,255,0.25); color: rgba(255,255,255,0.6);
+  padding: 5px 12px; cursor: pointer; transition: border-color 0.15s, color 0.15s;
+}
+.tc-replay:hover { border-color: var(--accent); color: var(--accent); }
+.tc-body { padding: 32px 28px; display: flex; flex-direction: column; gap: 28px; }
+.tc-row { display: grid; grid-template-columns: 80px 1fr 64px; gap: 16px; align-items: center; }
+.tc-name { font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.tc-bar-track { background: rgba(10,10,10,0.08); height: 12px; position: relative; overflow: hidden; }
+.tc-bar-fill {
+  height: 100%; width: 0%; position: absolute; top: 0; left: 0;
+  transition: none;
+}
+.tc-bar-fill.manual-fill { background: rgba(10,10,10,0.25); }
+.tc-bar-fill.apex-fill   { background: var(--accent); border-right: 2px solid var(--ink); }
+.tc-elapsed {
+  font-family: var(--f-mono); font-size: 13px; font-weight: 500;
+  letter-spacing: 0.04em; text-align: right; color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.tc-elapsed.done { color: var(--ink); font-weight: 700; }
+.tc-apex-done-badge {
+  display: none; margin-left: 8px;
+  font-family: var(--f-mono); font-size: 9px; letter-spacing: 0.1em;
+  text-transform: uppercase; background: var(--accent); color: var(--ink);
+  padding: 2px 7px; vertical-align: middle;
+}
+.tc-footnote {
+  padding: 14px 28px; border-top: 1px solid var(--border);
+  font-family: var(--f-mono); font-size: 9px; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--muted);
+}
+
+/* ═══════════════════════════════════════
+   THE HARD PART — scrollytelling
+═══════════════════════════════════════ */
+#hard { padding: 120px 0 0; background: var(--ink); color: var(--paper); }
+#hard .big-headline { color: var(--paper); }
+#hard .section-label { color: rgba(255,255,255,0.25); }
+#hard .section-label::after { background: rgba(255,255,255,0.08); }
+#hard .narrative { color: rgba(245,244,239,0.6); }
+#hard .narrative strong { color: var(--paper); }
+
+/* scrolly outer */
+.scrolly-outer {
+  display: grid; grid-template-columns: 1fr 1fr;
+  margin-top: 72px; padding-bottom: 80px;
+}
+.scrolly-sticky-col {
+  position: sticky; top: 80px; height: fit-content;
+  padding: 0 0 48px 40px;
+}
+.scrolly-steps-col { padding: 0 40px 0 40px; }
+
+/* viz panel */
+.viz-panel {
+  background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);
+  aspect-ratio: 1 / 0.85; display: flex; flex-direction: column;
+  position: relative; overflow: hidden;
+}
+.viz-state { display: none; flex-direction: column; height: 100%; }
+.viz-state.active { display: flex; }
+
+/* shared viz chrome */
+.viz-chrome {
+  display: flex; align-items: center; gap: 6px;
+  padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.08);
+  flex-shrink: 0;
+}
+.viz-chrome-dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.12); }
+.viz-chrome-dot.red   { background: #FF5F57; }
+.viz-chrome-dot.amber { background: #FEBC2E; }
+.viz-chrome-dot.green { background: #28C840; }
+.viz-chrome-url {
+  margin-left: 8px; font-family: var(--f-mono); font-size: 10px;
+  color: rgba(255,255,255,0.25); letter-spacing: 0.04em;
+}
+.viz-body { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 28px; }
+
+/* State 0 — blocked */
+.viz-0-icon { font-size: 40px; margin-bottom: 16px; }
+.viz-0-title {
+  font-size: 16px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.04em; color: var(--paper); margin-bottom: 8px;
+}
+.viz-0-sub {
+  font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.08em;
+  text-transform: uppercase; color: rgba(255,255,255,0.3); text-align: center; line-height: 1.6;
+}
+.viz-0-pill {
+  margin-top: 20px; background: rgba(255,80,80,0.15); border: 1px solid rgba(255,80,80,0.3);
+  padding: 8px 18px; font-family: var(--f-mono); font-size: 10px;
+  letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,120,120,0.8);
+}
+
+/* State 1 — loading */
+.viz-1-site {
+  font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.1em;
+  text-transform: uppercase; color: rgba(255,255,255,0.3); margin-bottom: 20px;
+}
+.viz-1-spinner {
+  width: 36px; height: 36px; border: 2px solid rgba(255,255,255,0.1);
+  border-top-color: var(--accent); border-radius: 50%;
+  animation: spin 1s linear infinite; margin-bottom: 20px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.viz-1-bar-track {
+  width: 100%; height: 4px; background: rgba(255,255,255,0.08); margin-bottom: 16px; position: relative;
+}
+.viz-1-bar-fill {
+  height: 100%; background: var(--accent); position: absolute; top: 0; left: 0;
+  animation: loading-fill 6s ease-in-out infinite;
+}
+@keyframes loading-fill { 0% { width: 0%; } 70% { width: 88%; } 85% { width: 88%; } 100% { width: 0%; } }
+.viz-1-timer {
+  font-family: var(--f-mono); font-size: 32px; font-weight: 500;
+  letter-spacing: -0.01em; color: var(--paper); font-variant-numeric: tabular-nums;
+}
+.viz-1-note {
+  font-family: var(--f-mono); font-size: 9px; letter-spacing: 0.1em;
+  text-transform: uppercase; color: rgba(255,255,255,0.2); margin-top: 6px;
+}
+
+/* State 2 — parallel */
+.viz-2-windows { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; margin-bottom: 20px; }
+.viz-2-win { border: 1px solid rgba(255,255,255,0.12); }
+.viz-2-win-head {
+  background: rgba(255,255,255,0.06); padding: 6px 10px;
+  font-family: var(--f-mono); font-size: 9px; letter-spacing: 0.1em;
+  text-transform: uppercase; color: rgba(255,255,255,0.3);
+  display: flex; align-items: center; gap: 6px;
+}
+.viz-2-win-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+.viz-2-win-body { padding: 12px; display: flex; flex-direction: column; gap: 6px; }
+.viz-2-bar {
+  height: 5px; background: rgba(255,255,255,0.08);
+  animation: viz2-bar 2.2s ease-in-out infinite;
+}
+.viz-2-bar:nth-child(2) { animation-delay: 0.3s; width: 70%; }
+.viz-2-bar:nth-child(3) { animation-delay: 0.6s; width: 55%; }
+.viz-2-win:last-child .viz-2-bar { animation-delay: 0.15s; }
+.viz-2-win:last-child .viz-2-bar:nth-child(2) { animation-delay: 0.45s; width: 80%; }
+.viz-2-win:last-child .viz-2-bar:nth-child(3) { animation-delay: 0.75s; width: 40%; }
+@keyframes viz2-bar {
+  0%, 100% { background: rgba(255,255,255,0.08); }
+  50% { background: rgba(230,255,61,0.5); }
+}
+.viz-2-badge {
+  font-family: var(--f-mono); font-size: 11px; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--accent);
+  border-top: 1px solid rgba(255,255,255,0.08); padding-top: 14px; width: 100%; text-align: center;
+}
+
+/* scrolly step */
+.scrolly-step {
+  min-height: 65vh; display: flex; flex-direction: column; justify-content: center;
+  padding: 48px 0; border-top: 1px solid rgba(255,255,255,0.07);
+  opacity: 0.35; transition: opacity 0.4s ease;
+}
+.scrolly-step.active { opacity: 1; }
+.scrolly-step:last-child { padding-bottom: 80px; }
+.s-step-num {
+  font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--accent); margin-bottom: 20px;
+}
+.s-step-title {
+  font-size: 22px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: -0.01em; line-height: 1.2; margin-bottom: 18px; color: var(--paper);
+}
+.s-step-body { font-size: 15px; line-height: 1.72; color: rgba(245,244,239,0.55); max-width: 42ch; }
+.s-step-fix {
+  margin-top: 20px; font-family: var(--f-mono); font-size: 9px;
+  letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent);
+  padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.06);
+}
+
+/* ═══════════════════════════════════════
+   DECISION ENGINE — hover + tap tooltips
+═══════════════════════════════════════ */
+#engine { padding: 120px 0 100px; background: var(--bg); }
+
+.checks-intro {
+  font-size: 18px; line-height: 1.7; color: rgba(10,10,10,0.65);
+  max-width: 54ch; margin-bottom: 60px;
+}
+.check-list { list-style: none; }
+.check-item {
+  display: grid; grid-template-columns: 48px 1fr auto 36px;
+  align-items: center; gap: 20px; padding: 0;
+  border-top: 1px solid var(--border);
+  opacity: 0; transform: translateX(-10px);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+  position: relative; cursor: pointer;
+}
+.check-item:last-child { border-bottom: 1px solid var(--border); }
+.check-item.checked { opacity: 1; transform: none; }
+.check-item > * { padding-top: 22px; padding-bottom: 22px; }
+.ch-num { font-family: var(--f-mono); font-size: 18px; font-weight: 500; color: var(--muted); }
+.ch-name { font-size: 19px; font-weight: 700; text-transform: uppercase; letter-spacing: -0.005em; }
+.ch-cond { font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.06em; color: var(--muted); text-align: right; }
+.ch-pass {
+  width: 28px; height: 28px; background: var(--accent); border: 2px solid var(--ink);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  opacity: 0; transform: scale(0.5);
+  transition: opacity 0.25s ease 0.32s, transform 0.25s ease 0.32s;
+}
+.check-item.checked .ch-pass { opacity: 1; transform: scale(1); }
+.ch-pass svg { width: 13px; height: 13px; }
+
+/* tooltip — shows on hover OR tap (.tooltip-open class) */
+.ch-tooltip {
+  display: none; position: absolute; left: 0; right: 0; bottom: 100%;
+  background: var(--ink); color: var(--paper); z-index: 10;
+  padding: 14px 20px; border-bottom: 2px solid var(--accent);
+  pointer-events: none;
+}
+.check-item:hover .ch-tooltip,
+.check-item.tooltip-open .ch-tooltip { display: block; }
+.ch-tooltip-label {
+  font-family: var(--f-mono); font-size: 9px; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--accent); margin-bottom: 5px;
+}
+.ch-tooltip-text { font-size: 13px; line-height: 1.55; color: rgba(245,244,239,0.75); }
+
+.engine-note {
+  margin-top: 52px; padding: 30px 32px;
+  background: var(--ink); color: var(--paper); font-size: 16px; line-height: 1.65;
+}
+.engine-note strong { color: var(--accent); font-weight: 600; }
+
+/* ═══════════════════════════════════════
+   THE NUMBERS
+═══════════════════════════════════════ */
+#numbers { padding: 120px 0; background: var(--ink); color: var(--paper); }
+#numbers .section-label { color: rgba(255,255,255,0.25); }
+#numbers .section-label::after { background: rgba(255,255,255,0.08); }
+
+.stats-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 1px; background: rgba(255,255,255,0.07); margin-top: 60px;
+}
+.stat-card { background: var(--ink); padding: 52px 44px; display: flex; flex-direction: column; gap: 10px; }
+.stat-card.accent-bg { background: var(--accent); color: var(--ink); grid-column: span 2; }
+.stat-card.wide { grid-column: span 2; background: rgba(255,255,255,0.03); }
+.stat-val {
+  font-size: clamp(64px, 10vw, 112px); font-weight: 700;
+  line-height: 0.9; letter-spacing: -0.04em; color: var(--accent);
+}
+.stat-card.accent-bg .stat-val { color: var(--ink); }
+.stat-card.wide .stat-val { color: var(--paper); font-size: clamp(48px, 7vw, 88px); }
+.stat-lbl {
+  font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.12em;
+  text-transform: uppercase; color: rgba(245,244,239,0.45); margin-top: 6px;
+}
+.stat-card.accent-bg .stat-lbl { color: rgba(10,10,10,0.5); }
+.stat-card.wide .stat-lbl { color: rgba(245,244,239,0.35); }
+.stat-ctx { font-size: 14px; line-height: 1.55; color: rgba(245,244,239,0.35); }
+.stat-card.accent-bg .stat-ctx { color: rgba(10,10,10,0.5); }
+.stat-card.wide .stat-ctx { color: rgba(245,244,239,0.28); }
+
+/* ═══════════════════════════════════════
+   WHAT THIS FREED
+═══════════════════════════════════════ */
+#freed { padding: 120px 0 100px; background: var(--bg); }
+.pull-quote {
+  font-size: clamp(20px, 3vw, 32px); font-weight: 700;
+  line-height: 1.2; letter-spacing: -0.015em; text-transform: uppercase;
+  border-left: 4px solid var(--accent); padding-left: 28px;
+  margin: 52px 0; max-width: 28ch;
+}
+
+/* ═══════════════════════════════════════
+   WHAT'S NEXT
+═══════════════════════════════════════ */
+#next { padding: 120px 0 80px; background: var(--ink); color: var(--paper); }
+#next .big-headline { color: var(--paper); }
+#next .section-label { color: rgba(255,255,255,0.25); }
+#next .section-label::after { background: rgba(255,255,255,0.08); }
+#next .narrative { color: rgba(245,244,239,0.6); }
+#next .narrative strong { color: var(--paper); }
+
+.next-items { margin-top: 60px; margin-bottom: 72px; }
+.next-item { display: flex; gap: 28px; padding: 32px 0; border-top: 1px solid rgba(255,255,255,0.08); align-items: flex-start; }
+.next-item:last-child { border-bottom: 1px solid rgba(255,255,255,0.08); }
+.next-tag {
+  font-family: var(--f-mono); font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase;
+  background: var(--accent); color: var(--ink); padding: 6px 12px;
+  white-space: nowrap; flex-shrink: 0; margin-top: 2px; font-weight: 500;
+}
+.next-text { font-size: 16px; line-height: 1.7; color: rgba(245,244,239,0.6); }
+.next-text strong { display: block; color: var(--paper); font-weight: 700; font-size: 15px; text-transform: uppercase; letter-spacing: 0.02em; margin-bottom: 6px; }
+
+/* ═══════════════════════════════════════
+   CLOSE
+═══════════════════════════════════════ */
+#close { padding: 56px 0 52px; background: var(--ink); border-top: 1px solid rgba(255,255,255,0.07); }
+.sign-off { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 28px; }
+.sign-name { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--paper); }
+.sign-meta { font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-top: 5px; }
+.sign-back {
+  font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--paper); border: 1px solid rgba(255,255,255,0.18); padding: 13px 22px;
+  display: inline-flex; align-items: center; gap: 10px;
+  transition: background 0.18s, color 0.18s, border-color 0.18s;
+}
+.sign-back:hover { background: var(--accent); color: var(--ink); border-color: var(--accent); }
+.sign-back svg { width: 11px; height: 11px; }
+
+/* ═══════════════════════════════════════
+   REVEAL SYSTEM
+═══════════════════════════════════════ */
+.reveal { opacity: 0; transform: translateY(18px); transition: opacity 0.6s ease, transform 0.6s ease; }
+.reveal.visible { opacity: 1; transform: none; }
+.d1 { transition-delay: 0.10s; }
+.d2 { transition-delay: 0.20s; }
+.d3 { transition-delay: 0.32s; }
+.d4 { transition-delay: 0.44s; }
+
+/* ═══════════════════════════════════════
+   MOBILE
+═══════════════════════════════════════ */
+@media (max-width: 860px) {
+  .scrolly-outer { grid-template-columns: 1fr; }
+  .scrolly-sticky-col { position: static; padding: 0 24px 32px; }
+  .scrolly-steps-col { padding: 0 24px; }
+  .viz-panel { aspect-ratio: 4 / 2.2; }
+  .scrolly-step { min-height: auto; padding: 36px 0; opacity: 1; }
+}
+@media (max-width: 768px) {
+  .back-link { top: 14px; left: 14px; }
+  #hero { padding: 52px 24px 44px; min-height: 100svh; }
+  .hero-blockmark, .hero-scroll { display: none; }
+  .container, .container-wide { padding: 0 24px; }
+  #gap { padding: 80px 24px; }
+  .stats-grid { grid-template-columns: 1fr; }
+  .stat-card.accent-bg, .stat-card.wide { grid-column: span 1; }
+  .check-item { grid-template-columns: 40px 1fr 28px; gap: 14px; }
+  .ch-cond { display: none; }
+  .next-item { flex-direction: column; gap: 12px; }
+  .sign-off { flex-direction: column; align-items: flex-start; }
+  .live-counter { grid-template-columns: 1fr; }
+  .lc-pulse-col { flex-direction: row; padding: 16px 24px; }
+  .lc-live-label { writing-mode: horizontal-tb; transform: none; }
+  .tc-row { grid-template-columns: 64px 1fr 54px; }
+  /* flow: collapse to 2-col grid, show all nodes */
+  #flow-sticky-outer { height: auto; margin: 40px 0 0; }
+  #flow-sticky-inner { position: static; padding: 0 24px; }
+  .fsn-row { grid-template-columns: 1fr 1fr; }
+  .fsn-node { opacity: 1 !important; transform: none !important; padding: 20px 16px; }
+  .fsn-node + .fsn-node { border-left: 1.5px solid var(--ink); }
+  .fsn-node:nth-child(n+3) { border-top: none; }
+  .fsn-scroll-cue { display: none; }
+  #dot-nav { display: none; }
+  /* tooltip: show on tap, hide on non-tapped */
+  .check-item:hover .ch-tooltip { display: none; }
+  .check-item.tooltip-open .ch-tooltip { display: block; }
+}
+
+/* ── iPhone SE / very narrow: 1-col flow ── */
+@media (max-width: 480px) {
+  .fsn-row { grid-template-columns: 1fr; }
+  .fsn-node + .fsn-node { border-left: 1.5px solid var(--ink); border-top: none; }
+  .fsn-node:nth-child(n+2) { border-top: none; }
+}
+
+/* ═══════════════════════════════════════
+   REDUCED MOTION
+═══════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+  .reveal { transition: none !important; opacity: 1 !important; transform: none !important; }
+  .check-item { transition: none !important; opacity: 1 !important; transform: none !important; }
+  .ch-pass { transition: none !important; opacity: 1 !important; transform: none !important; }
+  .scrolly-step { transition: none !important; opacity: 1 !important; }
+  .lc-dot { animation: none !important; background: var(--ink); }
+  .viz-1-spinner { animation: none !important; border-top-color: var(--accent); }
+  .viz-1-bar-fill { animation: none !important; width: 60%; }
+  .viz-2-bar { animation: none !important; background: rgba(230,255,61,0.3); }
+  #cursor-dot { display: none; }
+}
+</style>
+</head>
+<body>
+
+<div id="cursor-dot" aria-hidden="true"></div>
+
+<div id="scroll-header" aria-hidden="true">
+  <div id="sh-track"></div>
+  <div id="sh-fill"></div>
+  <div id="sh-trailer">
+    <svg width="40" height="18" viewBox="0 0 40 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="0" y="1" width="22" height="10" rx="1.5" fill="#0A0A0A"/>
+      <rect x="21.5" y="6.5" width="3" height="2.5" fill="#444"/>
+      <rect x="24" y="2" width="14" height="9" rx="2" fill="#0A0A0A"/>
+      <rect x="25" y="3.5" width="7" height="5.5" rx="1" fill="#E6FF3D" opacity="0.8"/>
+      <rect x="37.2" y="5" width="1.8" height="2.5" rx="0.5" fill="#fffbe6" opacity="0.85"/>
+      <circle cx="6" cy="13" r="3.2" fill="#1a1a1a"/>
+      <circle cx="15" cy="13" r="3.2" fill="#1a1a1a"/>
+      <circle cx="31" cy="13" r="3.2" fill="#1a1a1a"/>
+      <circle cx="6" cy="13" r="1.3" fill="#666" opacity="0.35"/>
+      <circle cx="15" cy="13" r="1.3" fill="#666" opacity="0.35"/>
+      <circle cx="31" cy="13" r="1.3" fill="#666" opacity="0.35"/>
+    </svg>
+  </div>
+</div>
+
+<div class="back-links">
+  <a href="https://blog.vishalbuilds.com" class="back-link" aria-label="Back to blog">
+    <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 6H2M5 2L1 6l4 4"/></svg>
+    Blog
+  </a>
+  <a href="https://blog.vishalbuilds.com/stories" class="back-link" aria-label="Back to Stories">
+    Stories
+  </a>
+</div>
+
+<nav id="dot-nav" aria-label="Section navigation">
+  <button class="dot-item" aria-label="Hero"></button>
+  <button class="dot-item" aria-label="The Pattern"></button>
+  <button class="dot-item" aria-label="What I Built"></button>
+  <button class="dot-item" aria-label="The Hard Part"></button>
+  <button class="dot-item" aria-label="Decision Engine"></button>
+  <button class="dot-item" aria-label="The Numbers"></button>
+</nav>
+
+
+<!-- ═══════════════════════════════════════ HERO ═══ -->
+<section id="hero">
+  <div class="hero-blockmark" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+  <div class="hero-kicker reveal">Agentic Automation &middot; AF Trailer Programs &middot; 2026</div>
+  <h1 class="hero-title reveal d1" id="hero-title">AP<span>EX</span></h1>
+  <p class="hero-sub reveal d2">How I built a browser agent to do the work nobody wanted to do, and what happened when it actually worked.</p>
+  <div class="hero-meta reveal d3">
+    <div class="hero-meta-item">Vishal Gayakwar</div>
+    <div class="hero-meta-item">Python &plus; Playwright</div>
+    <div class="hero-meta-item">Live</div>
+  </div>
+  <div class="hero-scroll" aria-hidden="true">Scroll to read</div>
+</section>
+
+
+<!-- ═══════════════════════════════════════ THE QUEUE ═══ -->
+<section id="queue">
+  <div class="container">
+    <div class="section-label reveal">01 &middot; The Problem</div>
+    <h2 class="big-headline reveal">Every morning,<br>a queue arrives.</h2>
+    <div class="narrative reveal d1">
+      <p>Inside Amazon's freight operations, a team called TFT manages trailer movement across dozens of facilities. Every day, a system called Paragon generates cases, each one representing a shipment that needs a trailer attached before it can move.</p>
+      <p>The cases land in a queue. Associates work through them one by one. Some of those cases are genuinely hard. A trailer stuck in the wrong yard. A site with no available options. A late shipment where someone needs to make a judgment call.</p>
+      <p>These are the cases that need a human. And then there's <strong>the other kind.</strong></p>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════ THE PATTERN ═══ -->
+<section id="pattern">
+  <div class="container">
+    <div class="section-label reveal">02 &middot; The Pattern</div>
+    <span class="big-stat count-up reveal" data-target="35" data-prefix="~" data-suffix="%">~0%</span>
+    <p class="pattern-body reveal d1">of incoming cases require no judgment. Open a tool. Find an empty trailer. Check it. Attach it. Resolve. The associate already knows the answer before they open the case.</p>
+
+    <div class="manual-flow reveal d2">
+      <div class="manual-flow-label">The manual process, repeated hundreds of times a week</div>
+      <div class="manual-flow-steps">
+        Open Paragon <span>&rarr;</span> Find the case <span>&rarr;</span> Open YMS <span>&rarr;</span>
+        Search the yard <span>&rarr;</span> Find empty trailer <span>&rarr;</span> Check it's clean
+        <span>&rarr;</span> Attach VRID <span>&rarr;</span> Resolve <span>&rarr;</span> Next case
+      </div>
+      <div class="manual-flow-note">~2 minutes per case &nbsp;&middot;&nbsp; no decision involved</div>
+    </div>
+
+    <!-- LIVE COUNTER -->
+    <div class="live-counter reveal d3">
+      <div class="lc-pulse-col">
+        <div class="lc-dot"></div>
+        <div class="lc-live-label">Live</div>
+      </div>
+      <div class="lc-body">
+        <div class="lc-description">Since you opened this page</div>
+        <div class="lc-number" id="lc-num">0</div>
+        <div class="lc-unit">cases APEX would have resolved</div>
+        <div class="lc-rate">One every 32 seconds &nbsp;&middot;&nbsp; live processing speed</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════ THE GAP ═══ -->
+<section id="gap">
+  <div class="gap-inner">
+    <div class="gap-rule reveal"></div>
+    <p class="gap-statement reveal d1">The information was already there.<br>The rule was already written.</p>
+    <div class="gap-rule reveal d2"></div>
+    <p class="gap-statement dim reveal d3">The only thing missing was something to click the buttons.</p>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════ WHAT APEX IS ═══ -->
+<section id="what">
+  <div class="container">
+    <div class="section-label reveal">03 &middot; What I Built</div>
+    <h2 class="big-headline reveal">So I built the thing<br>that clicks the buttons.</h2>
+    <div class="narrative reveal d1">
+      <p>APEX is a browser automation agent. It opens a real Chrome window, logs into Paragon, reads the case queue, opens YMS in a second tab, evaluates available trailers, makes the decision, attaches the VRID, and resolves the case.</p>
+      <p>It does exactly what an associate would do. It takes <strong>32 seconds</strong>. Then it moves to the next case.</p>
+    </div>
+  </div>
+
+  <!-- HORIZONTAL FLOW — sticky, scroll-driven node reveal -->
+  <div id="flow-sticky-outer">
+    <div id="flow-sticky-inner">
+      <div class="fsn-label-row">APEX &middot; Case Lifecycle</div>
+      <div class="fsn-row">
+        <div class="fsn-node">
+          <div class="fsn-num">01</div>
+          <div class="fsn-name">Case Arrives</div>
+          <div class="fsn-detail">A Paragon NOPT or AFE case hits the TFT queue. Eligible for automation. No judgment needed.</div>
+        </div>
+        <div class="fsn-node">
+          <div class="fsn-num">02</div>
+          <div class="fsn-name">Evaluates</div>
+          <div class="fsn-detail">APEX opens YMS, scans for available trailers, and runs 7 checks on each candidate.</div>
+        </div>
+        <div class="fsn-node">
+          <div class="fsn-num">03</div>
+          <div class="fsn-name">Automates</div>
+          <div class="fsn-detail">Trailer passes all 7 checks. VRID attached. Case resolved in Paragon. Logged. 32 seconds.</div>
+        </div>
+        <div class="fsn-node">
+          <div class="fsn-num">04</div>
+          <div class="fsn-name">Escalates</div>
+          <div class="fsn-detail">No trailer clears the checks. APEX doesn't guess. It flags the case for a human to take over.</div>
+        </div>
+      </div>
+      <div class="fsn-scroll-cue" aria-hidden="true">Scroll to progress</div>
+    </div>
+  </div>
+
+  <!-- TIME COMPARISON -->
+  <div id="what-after">
+    <div class="container">
+      <div class="time-compare-wrap reveal d3">
+        <div class="tc-header">
+          <span class="tc-header-label">The time difference, animated</span>
+          <button class="tc-replay" id="tc-replay" aria-label="Replay animation">&#8635; Replay</button>
+        </div>
+        <div class="tc-body">
+          <div class="tc-row">
+            <div class="tc-name">Manual</div>
+            <div class="tc-bar-track"><div class="tc-bar-fill manual-fill" id="bar-manual"></div></div>
+            <div class="tc-elapsed" id="time-manual">0s</div>
+          </div>
+          <div class="tc-row">
+            <div class="tc-name">APEX</div>
+            <div class="tc-bar-track"><div class="tc-bar-fill apex-fill" id="bar-apex"></div></div>
+            <div class="tc-elapsed" id="time-apex">0s <span class="tc-apex-done-badge" id="apex-badge">Done</span></div>
+          </div>
+        </div>
+        <div class="tc-footnote">Manual: ~120s per case &nbsp;&middot;&nbsp; APEX: 32s per case &nbsp;&middot;&nbsp; 75% reduction</div>
+      </div>
+
+      <div class="narrative reveal d4" style="margin-top:40px">
+        <p>It doesn't replace judgment. It replaces the absence of it: the cases where no judgment was needed in the first place.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════ THE HARD PART — scrollytelling ═══ -->
+<section id="hard">
+  <div class="container">
+    <div class="section-label reveal">04 &middot; The Build</div>
+    <h2 class="big-headline reveal">It sounds simple.<br>It wasn't.</h2>
+    <div class="narrative reveal d1">
+      <p>Browser automation against internal enterprise tools is a different problem. <strong>Three things</strong> made this harder than expected.</p>
+    </div>
+  </div>
+
+  <div class="scrolly-outer" id="scrolly-hard">
+    <!-- STICKY VIZ PANEL -->
+    <div class="scrolly-sticky-col">
+      <div class="viz-panel" id="hard-viz">
+
+        <!-- State 0: headless blocked -->
+        <div class="viz-state vs-0 active">
+          <div class="viz-chrome">
+            <div class="viz-chrome-dot red"></div>
+            <div class="viz-chrome-dot"></div>
+            <div class="viz-chrome-dot"></div>
+            <div class="viz-chrome-url">midway-auth.amazon.com</div>
+          </div>
+          <div class="viz-body">
+            <div class="viz-0-icon">🔒</div>
+            <div class="viz-0-title">Access Denied</div>
+            <div class="viz-0-sub">Headless browser detected.<br>Authentication requires a visible session.</div>
+            <div class="viz-0-pill">headless=True &nbsp;→&nbsp; blocked</div>
+          </div>
+        </div>
+
+        <!-- State 1: loading mask -->
+        <div class="viz-state vs-1">
+          <div class="viz-chrome">
+            <div class="viz-chrome-dot amber"></div>
+            <div class="viz-chrome-dot amber"></div>
+            <div class="viz-chrome-dot"></div>
+            <div class="viz-chrome-url">yms.amazon.com/inventory</div>
+          </div>
+          <div class="viz-body">
+            <div class="viz-1-site">Loading YMS inventory...</div>
+            <div class="viz-1-spinner"></div>
+            <div class="viz-1-bar-track"><div class="viz-1-bar-fill"></div></div>
+            <div class="viz-1-timer" id="viz-timer">0s</div>
+            <div class="viz-1-note">timeout threshold: 90s</div>
+          </div>
+        </div>
+
+        <!-- State 2: parallel sessions -->
+        <div class="viz-state vs-2">
+          <div class="viz-chrome">
+            <div class="viz-chrome-dot green"></div>
+            <div class="viz-chrome-dot green"></div>
+            <div class="viz-chrome-dot green"></div>
+            <div class="viz-chrome-url">parallel execution</div>
+          </div>
+          <div class="viz-body">
+            <div class="viz-2-windows">
+              <div class="viz-2-win">
+                <div class="viz-2-win-head"><div class="viz-2-win-dot"></div>Partition A</div>
+                <div class="viz-2-win-body">
+                  <div class="viz-2-bar"></div>
+                  <div class="viz-2-bar"></div>
+                  <div class="viz-2-bar"></div>
+                </div>
+              </div>
+              <div class="viz-2-win">
+                <div class="viz-2-win-head"><div class="viz-2-win-dot"></div>Partition B</div>
+                <div class="viz-2-win-body">
+                  <div class="viz-2-bar"></div>
+                  <div class="viz-2-bar"></div>
+                  <div class="viz-2-bar"></div>
+                </div>
+              </div>
+            </div>
+            <div class="viz-2-badge">2&times; throughput, zero collisions</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- SCROLLING STEPS -->
+    <div class="scrolly-steps-col">
+      <div class="scrolly-step active" data-step="0">
+        <div class="s-step-num">01 &middot; Authentication</div>
+        <div class="s-step-title">Internal tools block headless browsers</div>
+        <div class="s-step-body">Amazon's authentication system (Midway) detects headless browsers and refuses to let them in. APEX had to run as a real, visible Chrome window, saving the session between runs so it doesn't need to re-authenticate each time. The browser is always open. It just runs quietly.</div>
+        <div class="s-step-fix">Fix &rarr; persistent browser context &plus; saved session profile</div>
+      </div>
+      <div class="scrolly-step" data-step="1">
+        <div class="s-step-num">02 &middot; Page loading</div>
+        <div class="s-step-title">Some pages take 90 seconds to load</div>
+        <div class="s-step-body">YMS, the yard management tool, can take anywhere from 3 to 90 seconds to fully render. The agent needed to detect when a page was stuck, reload it, re-select the site, and retry without losing track of the case it was working on. No timeouts allowed.</div>
+        <div class="s-step-fix">Fix &rarr; loading mask detection &plus; recovery &plus; retry flow</div>
+      </div>
+      <div class="scrolly-step" data-step="2">
+        <div class="s-step-num">03 &middot; Throughput</div>
+        <div class="s-step-title">2,600 cases across two tools is slow</div>
+        <div class="s-step-body">Working sequentially would take hours. The solution: split the queue 50/50 and spawn two independent browser sessions in parallel. Each gets its own set of sites. A done flag signals completion. When both finish, the logs merge.</div>
+        <div class="s-step-fix">Fix &rarr; parallel partition architecture &middot; 2&times; throughput</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════ DECISION ENGINE ═══ -->
+<section id="engine">
+  <div class="container">
+    <div class="section-label reveal">05 &middot; How It Decides</div>
+    <h2 class="big-headline reveal">Before APEX touches a trailer,<br>it runs through seven checks.</h2>
+    <p class="checks-intro reveal d1">Every trailer in the yard goes through this list. Pass all seven, or move on to the next one. Tap any check to see what happens when it fails.</p>
+
+    <ul class="check-list" id="check-list">
+      <li class="check-item" data-delay="0">
+        <span class="ch-num">01</span><span class="ch-name">Operator</span>
+        <span class="ch-cond">Must be AZNG</span>
+        <div class="ch-pass"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7l4 4 6-6"/></svg></div>
+        <div class="ch-tooltip"><div class="ch-tooltip-label">If operator check fails</div><div class="ch-tooltip-text">Trailer is skipped. Non-AZNG trailers may have different handling rules APEX isn't built to navigate.</div></div>
+      </li>
+      <li class="check-item" data-delay="120">
+        <span class="ch-num">02</span><span class="ch-name">Availability</span>
+        <span class="ch-cond">Not flagged unavailable</span>
+        <div class="ch-pass"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7l4 4 6-6"/></svg></div>
+        <div class="ch-tooltip"><div class="ch-tooltip-label">If availability check fails</div><div class="ch-tooltip-text">Trailer is flagged as out-of-service. Attaching a VRID would be incorrect. Skip, try next.</div></div>
+      </li>
+      <li class="check-item" data-delay="240">
+        <span class="ch-num">03</span><span class="ch-name">Load status</span>
+        <span class="ch-cond">No existing VRID assigned</span>
+        <div class="ch-pass"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7l4 4 6-6"/></svg></div>
+        <div class="ch-tooltip"><div class="ch-tooltip-label">If load status check fails</div><div class="ch-tooltip-text">Trailer already has a load or VRID attached. Double-attaching causes a conflict in Paragon. Move on.</div></div>
+      </li>
+      <li class="check-item" data-delay="360">
+        <span class="ch-num">04</span><span class="ch-name">Movement</span>
+        <span class="ch-cond">Not in active transit</span>
+        <div class="ch-pass"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7l4 4 6-6"/></svg></div>
+        <div class="ch-tooltip"><div class="ch-tooltip-label">If movement check fails</div><div class="ch-tooltip-text">Trailer is in transit between locations. Attaching while moving creates a data inconsistency. Skip.</div></div>
+      </li>
+      <li class="check-item" data-delay="480">
+        <span class="ch-num">05</span><span class="ch-name">Notes</span>
+        <span class="ch-cond">No red-flag keywords</span>
+        <div class="ch-pass"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7l4 4 6-6"/></svg></div>
+        <div class="ch-tooltip"><div class="ch-tooltip-label">If notes check fails</div><div class="ch-tooltip-text">Notes contain a red-flag keyword (DAMAGED, YELLOW TAG, STORAGE...). Trailer needs human review before use.</div></div>
+      </li>
+      <li class="check-item" data-delay="600">
+        <span class="ch-num">06</span><span class="ch-name">Status</span>
+        <span class="ch-cond">Must be empty, verified live</span>
+        <div class="ch-pass"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7l4 4 6-6"/></svg></div>
+        <div class="ch-tooltip"><div class="ch-tooltip-label">If status check fails</div><div class="ch-tooltip-text">Trailer shows as non-empty after clicking in. Only verified-empty trailers can be pre-assigned. Try next.</div></div>
+      </li>
+      <li class="check-item" data-delay="720">
+        <span class="ch-num">07</span><span class="ch-name">Condition</span>
+        <span class="ch-cond">Not damaged or in storage</span>
+        <div class="ch-pass"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7l4 4 6-6"/></svg></div>
+        <div class="ch-tooltip"><div class="ch-tooltip-label">If condition check fails</div><div class="ch-tooltip-text">Trailer is in storage or has a damaged/red condition flag. Not available for active assignments.</div></div>
+      </li>
+    </ul>
+
+    <div class="engine-note reveal">
+      Fail any check: skip the trailer, try the next one. If nothing clears all seven, <strong>APEX doesn't guess. It escalates.</strong> A human takes the case.
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════ THE NUMBERS ═══ -->
+<section id="numbers">
+  <div class="container">
+    <div class="section-label reveal">06 &middot; The Numbers</div>
+  </div>
+  <div class="container-wide">
+    <div class="stats-grid">
+      <div class="stat-card accent-bg reveal">
+        <div class="stat-val"><span class="count-up" data-target="34" data-prefix="~" data-suffix="%">~0%</span></div>
+        <div class="stat-lbl">Automation rate</div>
+        <div class="stat-ctx">Cases APEX handles end-to-end without any human input</div>
+      </div>
+      <div class="stat-card reveal">
+        <div class="stat-val"><span class="count-up" data-target="90" data-prefix="~" data-suffix="%">~0%</span></div>
+        <div class="stat-lbl">Success rate</div>
+        <div class="stat-ctx">When APEX takes a case, this is how often it resolves correctly</div>
+      </div>
+      <div class="stat-card reveal d1">
+        <div class="stat-val"><span class="count-up" data-target="32" data-suffix="s">0s</span></div>
+        <div class="stat-lbl">Per case</div>
+        <div class="stat-ctx">vs ~2 minutes manually, a 75% reduction in processing time</div>
+      </div>
+      <div class="stat-card wide reveal d2">
+        <div class="stat-val">3&ndash;4 hrs</div>
+        <div class="stat-lbl">Saved daily across the team</div>
+        <div class="stat-ctx">Time the TFT team no longer spends on routine pre-assignment work</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════ WHAT THIS FREED ═══ -->
+<section id="freed">
+  <div class="container">
+    <div class="section-label reveal">07 &middot; The Point of It</div>
+    <h2 class="big-headline reveal">The team didn't get faster.<br>They got better.</h2>
+    <div class="narrative reveal d1">
+      <p>When APEX handles the routine cases, TFT associates spend their time on the ones that actually need them. The complicated redirections. The yards with no good options. The sites where something's gone wrong and someone needs to make a call.</p>
+    </div>
+    <div class="pull-quote reveal d2">The best automation doesn't replace judgment.<br>It protects the time needed to use it.</div>
+    <div class="narrative reveal d3">
+      <p>That's the version of this story I find more interesting than the efficiency numbers. Not <em>faster</em>, but the right kind of work, available more of the time.</p>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════ WHAT'S NEXT ═══ -->
+<section id="next">
+  <div class="container">
+    <div class="section-label reveal">08 &middot; What's Next</div>
+    <h2 class="big-headline reveal">The cases APEX can't handle<br>are the interesting ones.</h2>
+    <div class="narrative reveal d1">
+      <p>When APEX hits something it can't resolve: a site not in YMS, an unusual equipment restriction, a case modified mid-flight, it escalates. A human takes over.</p>
+      <p>That escalation path is intentional. <strong>APEX was never designed to handle everything.</strong> It was designed to handle the cases that don't need a decision.</p>
+    </div>
+    <div class="next-items">
+      <div class="next-item reveal">
+        <div class="next-tag">Now</div>
+        <div class="next-text"><strong>Live</strong>APEX is running on live cases across the TFT queue. Logs reviewed daily. No issues flagged since launch.</div>
+      </div>
+      <div class="next-item reveal d1">
+        <div class="next-tag">Soon</div>
+        <div class="next-text"><strong>More case types</strong>The same architecture applies to other predictable case categories in the queue. The question is always the same: is there a decision here, or just a process?</div>
+      </div>
+      <div class="next-item reveal d2">
+        <div class="next-tag">Later</div>
+        <div class="next-text"><strong>Claude API for the judgment calls</strong>The escalated cases, the ones APEX currently can't touch, are the next frontier. Not more clicking, but actual reasoning: look at the notes, check the context, decide whether to try a fallback or pass it up.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════ CLOSE ═══ -->
+<section id="close">
+  <div class="container">
+    <div class="sign-off">
+      <div>
+        <div class="sign-name">Vishal Gayakwar</div>
+        <div class="sign-meta">Product Manager &nbsp;&middot;&nbsp; Amazon &nbsp;&middot;&nbsp; 2026</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <a href="https://blog.vishalbuilds.com/stories" class="sign-back">
+          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 6H2M5 2L1 6l4 4"/></svg>
+          Back to Stories
+        </a>
+        <a href="https://blog.vishalbuilds.com" class="sign-back">
+          Blog
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<script>
+(function () {
+  'use strict';
+
+  var prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ── 1. SCROLL TRAILER ── */
+  var shFill   = document.getElementById('sh-fill');
+  var shTrailer = document.getElementById('sh-trailer');
+  var TRAILER_W = 40;
+  window.addEventListener('scroll', function () {
+    var pct = Math.min(window.scrollY / (document.body.scrollHeight - window.innerHeight), 1);
+    shFill.style.width = (pct * 100) + '%';
+    shTrailer.style.transform = 'translateX(' + (pct * (window.innerWidth - TRAILER_W)) + 'px)';
+  }, { passive: true });
+
+  /* ── 2. HERO TITLE SCRAMBLE ── */
+  if (!prefersReducedMotion) {
+    var heroTitle = document.getElementById('hero-title');
+    if (heroTitle) {
+      var CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ#@$%&*!?';
+      var FINAL = 'APEX';
+      var scramStart = performance.now();
+      var SCRAM_DUR  = 1600;
+      var scramDone  = false;
+      function snapScram() {
+        if (!scramDone) { scramDone = true; heroTitle.innerHTML = 'AP<span>EX</span>'; }
+      }
+      /* Kill scramble immediately if user scrolls before it finishes */
+      window.addEventListener('scroll', snapScram, { passive: true, once: true });
+      function sRand() { return CHARS[Math.floor(Math.random() * CHARS.length)]; }
+      function scramTick(now) {
+        if (scramDone) return;
+        var t = Math.min((now - scramStart) / SCRAM_DUR, 1);
+        var chars = FINAL.split('').map(function (c, i) {
+          var charT = Math.max(0, Math.min((t - i * 0.18) / 0.55, 1));
+          if (charT <= 0) return sRand();
+          if (charT >= 1) return c;
+          return Math.random() > charT ? sRand() : c;
+        });
+        heroTitle.innerHTML = chars.slice(0, 2).join('') + '<span>' + chars.slice(2).join('') + '</span>';
+        if (t < 1) requestAnimationFrame(scramTick);
+        else snapScram();
+      }
+      requestAnimationFrame(scramTick);
+    }
+  }
+
+  /* ── 3. CURSOR FOLLOWER (hero only) ── */
+  if (!prefersReducedMotion) {
+    var dot  = document.getElementById('cursor-dot');
+    var hero = document.getElementById('hero');
+    if (dot && hero) {
+      var cx = 0, cy = 0, mx = 0, my = 0, dotOn = false;
+      hero.addEventListener('mousemove', function (e) {
+        mx = e.clientX; my = e.clientY;
+        if (!dotOn) { dotOn = true; dot.style.opacity = '1'; }
+      });
+      hero.addEventListener('mouseleave', function () {
+        dotOn = false; dot.style.opacity = '0';
+      });
+      function lerpDot() {
+        cx += (mx - cx) * 0.12;
+        cy += (my - cy) * 0.12;
+        dot.style.transform = 'translate(' + (cx - 4) + 'px, ' + (cy - 4) + 'px)';
+        requestAnimationFrame(lerpDot);
+      }
+      lerpDot();
+    }
+  }
+
+  /* ── 4. REVEAL ON SCROLL ── */
+  var revealObs = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) {
+      if (e.isIntersecting) { e.target.classList.add('visible'); revealObs.unobserve(e.target); }
+    });
+  }, { threshold: 0.1, rootMargin: '0px 0px -32px 0px' });
+  document.querySelectorAll('.reveal').forEach(function (el) { revealObs.observe(el); });
+
+  /* ── 5. COUNT-UP ANIMATION (ease-out cubic, 1.5s) ── */
+  function countUp(el, target, prefix, suffix) {
+    if (prefersReducedMotion) { el.textContent = prefix + target + suffix; return; }
+    var start = performance.now();
+    var DURATION = 1500;
+    function tick(now) {
+      var t      = Math.min((now - start) / DURATION, 1);
+      var eased  = 1 - Math.pow(1 - t, 3);
+      el.textContent = prefix + Math.round(eased * target) + suffix;
+      if (t < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }
+  var countObs = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) {
+      if (e.isIntersecting) {
+        var el = e.target;
+        countUp(el, parseInt(el.dataset.target, 10), el.dataset.prefix || '', el.dataset.suffix || '');
+        countObs.unobserve(el);
+      }
+    });
+  }, { threshold: 0.5 });
+  document.querySelectorAll('.count-up').forEach(function (el) { countObs.observe(el); });
+
+  /* ── 6. DECISION ENGINE CHECKLIST ── */
+  var checkList = document.getElementById('check-list');
+  if (checkList) {
+    new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) {
+          checkList.querySelectorAll('.check-item').forEach(function (item) {
+            setTimeout(function () { item.classList.add('checked'); }, parseInt(item.dataset.delay || 0, 10) + 150);
+          });
+        }
+      });
+    }, { threshold: 0.15 }).observe(checkList);
+  }
+
+  /* ── 7. TOOLTIP TAP SUPPORT ── */
+  document.querySelectorAll('.check-item').forEach(function (item) {
+    item.addEventListener('click', function (e) {
+      var wasOpen = item.classList.contains('tooltip-open');
+      document.querySelectorAll('.check-item.tooltip-open').forEach(function (i) {
+        i.classList.remove('tooltip-open');
+      });
+      if (!wasOpen) item.classList.add('tooltip-open');
+      e.stopPropagation();
+    });
+  });
+  document.addEventListener('click', function () {
+    document.querySelectorAll('.check-item.tooltip-open').forEach(function (i) {
+      i.classList.remove('tooltip-open');
+    });
+  });
+
+  /* ── 8. LIVE COUNTER ── */
+  var lcNum     = document.getElementById('lc-num');
+  var pageStart = Date.now();
+  if (lcNum) {
+    setInterval(function () {
+      lcNum.textContent = Math.floor((Date.now() - pageStart) / 1000 / 32);
+    }, 1000);
+  }
+
+  /* ── 9. TIME COMPARISON ANIMATION ── */
+  var barManual  = document.getElementById('bar-manual');
+  var barApex    = document.getElementById('bar-apex');
+  var timeManual = document.getElementById('time-manual');
+  var timeApex   = document.getElementById('time-apex');
+  var apexBadge  = document.getElementById('apex-badge');
+  var replayBtn  = document.getElementById('tc-replay');
+  var tcAnim     = null;
+  var tcStarted  = false;
+
+  function runTimeCompare() {
+    if (tcAnim) cancelAnimationFrame(tcAnim);
+    barManual.style.width = '0%'; barApex.style.width = '0%';
+    timeManual.textContent = '0s'; timeApex.textContent = '0s ';
+    timeManual.classList.remove('done'); timeApex.classList.remove('done');
+    apexBadge.style.display = 'none';
+    var DURATION = 4200, MANUAL_MAX = 120, APEX_MAX = 32;
+    var apexDone = false, animStart = null;
+    function frame(ts) {
+      if (!animStart) animStart = ts;
+      var pct  = Math.min((ts - animStart) / DURATION, 1);
+      barManual.style.width = (pct * 100) + '%';
+      timeManual.textContent = Math.round(pct * MANUAL_MAX) + 's';
+      var apexPct = Math.min(pct * (MANUAL_MAX / APEX_MAX), 1);
+      barApex.style.width = (apexPct * 100) + '%';
+      if (!apexDone) {
+        timeApex.textContent = Math.min(Math.round(apexPct * MANUAL_MAX), APEX_MAX) + 's ';
+        if (apexPct >= 1) {
+          apexDone = true;
+          timeApex.textContent = '32s ';
+          timeApex.classList.add('done');
+          apexBadge.style.display = 'inline';
+        }
+      }
+      if (pct < 1) tcAnim = requestAnimationFrame(frame);
+      else { timeManual.textContent = '120s'; timeManual.classList.add('done'); }
+    }
+    tcAnim = requestAnimationFrame(frame);
+  }
+  var tcWrap = document.querySelector('.time-compare-wrap');
+  if (tcWrap) {
+    new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting && !tcStarted) { tcStarted = true; runTimeCompare(); }
+      });
+    }, { threshold: 0.5 }).observe(tcWrap);
+  }
+  if (replayBtn) replayBtn.addEventListener('click', runTimeCompare);
+
+  /* ── 10. HORIZONTAL FLOW — scroll-driven node reveal ── */
+  var flowOuter = document.getElementById('flow-sticky-outer');
+  if (flowOuter) {
+    var flowNodes  = flowOuter.querySelectorAll('.fsn-node');
+    var FLOW_COUNT = flowNodes.length;
+
+    function updateFlow() {
+      var rect    = flowOuter.getBoundingClientRect();
+      var outerH  = flowOuter.offsetHeight - window.innerHeight;
+      var scrolled = -rect.top;
+      var progress = Math.max(0, Math.min(scrolled / outerH, 1));
+      var step     = 1 / FLOW_COUNT;
+
+      flowNodes.forEach(function (node, i) {
+        var nodeP = Math.max(0, Math.min((progress - i * step) / step, 1));
+        node.classList.remove('fsn-active', 'fsn-done');
+        if (!prefersReducedMotion) {
+          node.style.opacity = String(Math.max(0.1, nodeP));
+          node.style.transform = 'translateX(' + ((1 - nodeP) * -22) + 'px)';
+        } else {
+          node.style.opacity = '1';
+          node.style.transform = 'none';
+        }
+        if (nodeP >= 1)      node.classList.add('fsn-done');
+        else if (nodeP > 0)  node.classList.add('fsn-active');
+      });
+    }
+
+    window.addEventListener('scroll', updateFlow, { passive: true });
+    updateFlow();
+  }
+
+  /* ── 11. SCROLLYTELLING — Scrollama ── */
+  var hardViz  = document.getElementById('hard-viz');
+  var vizTimer = document.getElementById('viz-timer');
+  var timerLoop = null;
+
+  function setVizState(idx) {
+    if (!hardViz) return;
+    hardViz.querySelectorAll('.viz-state').forEach(function (s) { s.classList.remove('active'); });
+    var target = hardViz.querySelector('.vs-' + idx);
+    if (target) target.classList.add('active');
+    if (timerLoop) { clearInterval(timerLoop); timerLoop = null; }
+    if (idx === '1' && vizTimer) {
+      var t = 0;
+      vizTimer.textContent = '0s';
+      timerLoop = setInterval(function () { t = (t + 1) % 91; vizTimer.textContent = t + 's'; }, 160);
+    }
+  }
+
+  if (typeof scrollama !== 'undefined') {
+    var scroller = scrollama();
+    scroller.setup({ step: '.scrolly-step', offset: 0.55 })
+      .onStepEnter(function (res) {
+        document.querySelectorAll('.scrolly-step').forEach(function (s) { s.classList.remove('active'); });
+        res.element.classList.add('active');
+        setVizState(res.element.dataset.step);
+      });
+    window.addEventListener('resize', scroller.resize);
+  } else {
+    /* Fallback: vanilla IO if Scrollama fails to load */
+    var scrollySteps = document.querySelectorAll('.scrolly-step');
+    if (scrollySteps.length) {
+      var stepObs = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) {
+          if (e.isIntersecting) {
+            scrollySteps.forEach(function (s) { s.classList.remove('active'); });
+            e.target.classList.add('active');
+            setVizState(e.target.dataset.step);
+          }
+        });
+      }, { threshold: 0.55, rootMargin: '0px 0px -15% 0px' });
+      scrollySteps.forEach(function (s) { stepObs.observe(s); });
+    }
+  }
+
+  /* ── 12. SECTION DOT NAVIGATION ── */
+  var DOT_SECTION_IDS = ['hero', 'pattern', 'what', 'hard', 'engine', 'numbers'];
+  var dotItems    = document.querySelectorAll('.dot-item');
+  var sectionEls  = DOT_SECTION_IDS.map(function (id) { return document.getElementById(id); });
+
+  function updateDots() {
+    var mid = window.scrollY + window.innerHeight * 0.45;
+    var active = 0;
+    sectionEls.forEach(function (el, i) {
+      if (el && el.offsetTop <= mid) active = i;
+    });
+    dotItems.forEach(function (d, i) { d.classList.toggle('dot-active', i === active); });
+  }
+
+  dotItems.forEach(function (dot, i) {
+    dot.addEventListener('click', function () {
+      var target = sectionEls[i];
+      if (target) target.scrollIntoView({ behavior: 'smooth' });
+    });
+  });
+
+  window.addEventListener('scroll', updateDots, { passive: true });
+  updateDots();
+
+})();
+</script>
+</body>
+</html>

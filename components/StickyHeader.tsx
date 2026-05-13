@@ -71,6 +71,7 @@ export default function StickyHeader() {
         {[
           { href: "https://vishalbuilds.com", label: "Home" },
           { href: "/", label: "Blog" },
+          { href: "/stories", label: "Stories" },
           { href: "https://www.vishalbuilds.com/#projects", label: "Products" },
         ].map(({ href, label }) => (
           <Link
