@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>APEX: How I Built a Browser Agent to Do the Boring Work</title>
 <meta name="description" content="An internal automation agent built with Python and Playwright that handles ~34% of operational cases end-to-end, no human needed.">
-<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" href="/favicon.ico?v=2" sizes="any">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -891,7 +891,7 @@ p:last-child { margin-bottom: 0; }
         <div class="fsn-node">
           <div class="fsn-num">03</div>
           <div class="fsn-name">Automates</div>
-          <div class="fsn-detail">Trailer passes all 7 checks. VRID attached. Case resolved in Paragon. Logged. 32 seconds.</div>
+          <div class="fsn-detail">Trailer passes all 7 checks. VRID attached. Case resolved in Paragon. Slack log sent. 32 seconds.</div>
         </div>
         <div class="fsn-node">
           <div class="fsn-num">04</div>
@@ -1033,7 +1033,7 @@ p:last-child { margin-bottom: 0; }
       <div class="scrolly-step" data-step="2">
         <div class="s-step-num">03 &middot; Throughput</div>
         <div class="s-step-title">2,600 cases across two tools is slow</div>
-        <div class="s-step-body">Working sequentially would take hours. The solution: split the queue 50/50 and spawn two independent browser sessions in parallel. Each gets its own set of sites. A done flag signals completion. When both finish, the logs merge.</div>
+        <div class="s-step-body">Working sequentially would take hours. The solution: split the queue 50/50 and spawn two independent browser sessions in parallel. Each gets its own set of sites. A done flag signals completion. When both finish, the logs merge and post to Slack.</div>
         <div class="s-step-fix">Fix &rarr; parallel partition architecture &middot; 2&times; throughput</div>
       </div>
     </div>
@@ -1120,18 +1120,23 @@ p:last-child { margin-bottom: 0; }
         <div class="stat-ctx">Cases APEX handles end-to-end without any human input</div>
       </div>
       <div class="stat-card reveal">
-        <div class="stat-val"><span class="count-up" data-target="90" data-prefix="~" data-suffix="%">~0%</span></div>
+        <div class="stat-val"><span class="count-up" data-target="100" data-suffix="%">0%</span></div>
         <div class="stat-lbl">Success rate</div>
-        <div class="stat-ctx">When APEX takes a case, this is how often it resolves correctly</div>
+        <div class="stat-ctx">No incorrect trailer has ever been assigned</div>
       </div>
       <div class="stat-card reveal d1">
         <div class="stat-val"><span class="count-up" data-target="32" data-suffix="s">0s</span></div>
         <div class="stat-lbl">Per case</div>
         <div class="stat-ctx">vs ~2 minutes manually, a 75% reduction in processing time</div>
       </div>
+      <div class="stat-card reveal d2">
+        <div class="stat-val">Slack</div>
+        <div class="stat-lbl">Live run logs</div>
+        <div class="stat-ctx">Every run posts a success log to the TFT Slack channel automatically</div>
+      </div>
       <div class="stat-card wide reveal d2">
-        <div class="stat-val">3&ndash;4 hrs</div>
-        <div class="stat-lbl">Saved daily across the team</div>
+        <div class="stat-val">131 hrs</div>
+        <div class="stat-lbl">Saved every week</div>
         <div class="stat-ctx">Time the TFT team no longer spends on routine pre-assignment work</div>
       </div>
     </div>
@@ -1167,7 +1172,7 @@ p:last-child { margin-bottom: 0; }
     <div class="next-items">
       <div class="next-item reveal">
         <div class="next-tag">Now</div>
-        <div class="next-text"><strong>Live</strong>APEX is running on live cases across the TFT queue. Logs reviewed daily. No issues flagged since launch.</div>
+        <div class="next-text"><strong>Live</strong>APEX is running on live cases across the TFT queue. Logs reviewed daily via Slack. No issues flagged since launch.</div>
       </div>
       <div class="next-item reveal d1">
         <div class="next-tag">Soon</div>
