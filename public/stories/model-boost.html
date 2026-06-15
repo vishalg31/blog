@@ -1,0 +1,1070 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Model Boost: Vishal's Blog</title>
+  <link rel="icon" href="/favicon.ico?v=2" sizes="any">
+  <link rel="canonical" href="https://blog.vishalbuilds.com/stories/model-boost.html">
+  <meta property="og:title" content="Model Boost">
+  <meta property="og:description" content="It works.">
+  <meta property="og:image" content="https://blog.vishalbuilds.com/blog/builder/model-boost.jpg">
+  <meta property="og:type" content="article">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg:         #EFE9D9;
+    --ink:        #1A1A1A;
+    --accent:     #E85D5D;
+    --paper:      #F5F0E8;
+    --muted:      rgba(26,26,26,0.40);
+    --border:     rgba(26,26,26,0.08);
+    --dark-bg:    #1A1A1A;
+    --dark-text:  #EFE9D9;
+    --dark-muted: rgba(239,233,217,0.40);
+    --f-display:  'Bebas Neue', sans-serif;
+    --f-body:     'Inter', sans-serif;
+    --f-mono:     ui-monospace, 'Cascadia Code', monospace;
+  }
+
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--f-body);
+    font-size: 16px;
+    line-height: 1.65;
+    overflow-x: hidden;
+  }
+
+  /* SCROLL PROGRESS */
+  #progress {
+    position: fixed; top: 0; left: 0;
+    height: 2px; width: 0%;
+    background: var(--accent);
+    z-index: 1000;
+    transition: width 0.05s linear;
+  }
+  #progress::after {
+    content: '';
+    position: absolute; right: -4px; top: -3px;
+    width: 8px; height: 8px;
+    background: var(--accent); border-radius: 50%;
+    box-shadow: 0 0 8px var(--accent);
+  }
+
+  /* CURSOR */
+  #cursor {
+    position: fixed;
+    width: 8px; height: 8px;
+    background: var(--accent);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 999;
+    transform: translate(-50%,-50%);
+    transition: opacity 0.2s;
+    mix-blend-mode: multiply;
+  }
+
+  /* BACK LINKS */
+  #back {
+    position: fixed;
+    top: 2rem; left: 2.5rem;
+    z-index: 100;
+    display: flex; flex-direction: column; gap: 0.3rem;
+  }
+  #back a {
+    font-family: var(--f-mono);
+    font-size: 0.63rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  #back a:hover { color: var(--accent); }
+
+  /* DOT NAV */
+  #dotnav {
+    position: fixed; right: 2rem; top: 50%;
+    transform: translateY(-50%);
+    display: flex; flex-direction: column; gap: 0.6rem;
+    z-index: 100;
+  }
+  .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: rgba(26,26,26,0.18);
+    cursor: pointer;
+    transition: all 0.25s;
+  }
+  .dot.active { background: var(--accent); transform: scale(1.5); }
+
+  /* HERO */
+  #hero {
+    min-height: 100vh;
+    display: flex; flex-direction: column; justify-content: space-between;
+    padding: 5.5rem 2.5rem 2.5rem;
+    position: relative; overflow: hidden;
+    cursor: none;
+  }
+  #hero::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: repeating-linear-gradient(
+      to bottom, transparent, transparent 79px,
+      rgba(26,26,26,0.04) 79px, rgba(26,26,26,0.04) 80px
+    );
+    pointer-events: none;
+  }
+  .accent-bar {
+    position: absolute; top: 0; right: 0;
+    width: 3px; height: 100%;
+    background: linear-gradient(to bottom, var(--accent), transparent);
+    opacity: 0.7;
+  }
+  .hero-eyebrow {
+    font-family: var(--f-mono);
+    font-size: 0.70rem; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 1.2rem;
+  }
+  .hero-title {
+    font-family: var(--f-display);
+    font-size: clamp(88px, 15vw, 196px);
+    line-height: 0.84; letter-spacing: -0.01em;
+    margin-bottom: 1.8rem;
+  }
+  .t-ink   { color: var(--ink); }
+  .t-accent { color: var(--accent); }
+  .hero-kicker {
+    font-size: 1.10rem; font-weight: 300;
+    color: var(--muted); line-height: 1.60;
+    max-width: 480px; margin-bottom: 2rem;
+  }
+  .chips { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+  .chip {
+    font-family: var(--f-mono);
+    font-size: 0.63rem; letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 0.38em 0.9em; border-radius: 2px;
+  }
+  .chip-filled { background: var(--accent); color: #fff; }
+  .chip-border { border: 1px solid rgba(26,26,26,0.22); color: var(--muted); }
+
+  /* SECTIONS */
+  .sec { padding: 6.5rem 2.5rem; max-width: 900px; margin: 0 auto; }
+
+  .sec-dark-wrap { background: var(--dark-bg); }
+  .sec-dark-wrap .sec { color: var(--dark-text); }
+  .sec-dark-wrap .big-headline { color: var(--dark-text); }
+  .sec-dark-wrap .narrative    { color: rgba(239,233,217,0.72); }
+  .sec-dark-wrap .pull-quote   { border-left-color: var(--accent); color: var(--dark-text); }
+  .sec-dark-wrap .pq-attr      { color: var(--dark-muted); }
+  .sec-dark-wrap .sec-num      { color: var(--dark-muted); }
+
+  #numbers-wrap { background: var(--dark-bg); }
+  #numbers-wrap .sec { color: var(--dark-text); }
+  #numbers-wrap .big-headline { color: var(--dark-text); }
+
+  #point { border-top: 1px solid var(--border); }
+
+  .sec-num {
+    font-family: var(--f-mono);
+    font-size: 0.63rem; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 1.4rem; display: block;
+  }
+  .sec-label {
+    font-family: var(--f-mono);
+    font-size: 0.67rem; letter-spacing: 0.20em; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 0.7rem;
+    display: flex; align-items: center; gap: 1rem; max-width: 620px;
+  }
+  .sec-label::after {
+    content: ''; flex: 1; height: 1px; background: var(--border);
+  }
+  .sec-dark-wrap .sec-label::after { background: rgba(239,233,217,0.10); }
+
+  /* LIVE PULSE (s07) */
+  .live-pulse {
+    display: inline-flex; align-items: center; gap: 0.45rem;
+    margin-bottom: 0.4rem;
+  }
+  .lp-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--accent); flex-shrink: 0;
+    animation: lp-blink 1.8s ease-in-out infinite;
+  }
+  @keyframes lp-blink {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%       { opacity: 0.35; transform: scale(0.6); }
+  }
+  .lp-label {
+    font-family: var(--f-mono); font-size: 0.61rem;
+    letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--accent);
+  }
+  .big-headline {
+    font-family: var(--f-display);
+    font-size: clamp(46px, 7vw, 96px);
+    line-height: 0.88; letter-spacing: -0.01em;
+    color: var(--ink); margin-bottom: 2.5rem; max-width: 680px;
+  }
+  .narrative {
+    font-size: 1.0rem; font-weight: 300; line-height: 1.75;
+    color: rgba(26,26,26,0.78); max-width: 620px; margin-bottom: 1.6rem;
+  }
+  .narrative strong { font-weight: 600; color: var(--ink); }
+  .pull-quote {
+    border-left: 3px solid var(--accent);
+    padding: 0.8rem 1.5rem; margin: 2.5rem 0; max-width: 560px;
+  }
+  .pull-quote p {
+    font-size: 1.12rem; font-weight: 400;
+    line-height: 1.55; font-style: italic; color: var(--ink);
+  }
+  .pq-attr {
+    display: block;
+    font-family: var(--f-mono); font-size: 0.61rem;
+    letter-spacing: 0.10em; text-transform: uppercase;
+    color: var(--muted); margin-top: 0.7rem;
+  }
+
+  /* REVEALS */
+  .reveal {
+    opacity: 0; transform: translateY(22px);
+    transition: opacity 0.65s ease, transform 0.65s ease;
+  }
+  .reveal.visible { opacity: 1; transform: none; }
+  .reveal-d1 { transition-delay: 0.08s; }
+  .reveal-d2 { transition-delay: 0.16s; }
+  .reveal-d3 { transition-delay: 0.24s; }
+  .reveal-d4 { transition-delay: 0.32s; }
+
+  /* CALLOUT BOX */
+  .callout {
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: 4px; padding: 1.4rem 1.5rem;
+    margin: 2rem 0; max-width: 620px;
+  }
+  .callout-lbl {
+    font-family: var(--f-mono); font-size: 0.61rem;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 0.8rem; display: block;
+  }
+
+  /* TUESDAY EXAMPLE (s01) */
+  .example-rows { display: flex; flex-direction: column; gap: 0; }
+  .example-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0.65rem 0; border-bottom: 1px solid var(--border);
+  }
+  .example-row:last-child { border-bottom: none; }
+  .example-row-label { font-size: 0.82rem; color: var(--muted); }
+  .example-row-val {
+    font-family: var(--f-display); font-size: 1.5rem;
+    color: var(--ink); letter-spacing: 0.01em;
+  }
+  .example-row-val.hi { color: var(--accent); }
+
+  /* STEP TRIO (s02 dark) */
+  .trio { display: flex; gap: 0.8rem; margin: 2rem 0; max-width: 640px; }
+  .trio-step {
+    flex: 1; padding: 1.1rem;
+    background: rgba(239,233,217,0.05);
+    border: 1px solid rgba(239,233,217,0.10);
+    border-radius: 4px;
+  }
+  .trio-lbl {
+    font-family: var(--f-mono); font-size: 0.59rem;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--dark-muted); display: block; margin-bottom: 0.5rem;
+  }
+  .trio-val {
+    font-family: var(--f-display); font-size: 2.2rem;
+    line-height: 1; color: var(--dark-text);
+    display: block; margin-bottom: 0.4rem;
+  }
+  .trio-val.accent { color: var(--accent); }
+  .trio-desc { font-size: 0.74rem; color: var(--dark-muted); line-height: 1.5; }
+
+  /* PAPER CALLOUTS (s03) */
+  .paper-card {
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: 4px; padding: 1.3rem 1.5rem;
+    margin-bottom: 1rem; max-width: 620px;
+  }
+  .paper-card-lbl {
+    font-family: var(--f-mono); font-size: 0.61rem;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--accent); display: block; margin-bottom: 0.6rem;
+  }
+  .paper-card p {
+    font-size: 0.88rem; line-height: 1.65;
+    color: rgba(26,26,26,0.75);
+  }
+  .paper-card strong { font-weight: 600; color: var(--ink); }
+
+  /* EXPERIMENT CARDS (s04) */
+  .exp-grid { display: flex; flex-direction: column; gap: 0.9rem; margin: 2rem 0; max-width: 680px; }
+  .exp-card {
+    display: flex; align-items: flex-start; gap: 1.1rem;
+    padding: 1.1rem 1.3rem;
+    background: var(--paper); border: 1px solid var(--border);
+    border-left: 3px solid var(--border); border-radius: 4px;
+  }
+  .exp-card.shipped  { border-left-color: #3A7D44; }
+  .exp-card.rejected { border-left-color: rgba(232,93,93,0.55); }
+  .exp-card.kept     { border-left-color: rgba(26,26,26,0.22); }
+  .exp-n {
+    font-family: var(--f-display); font-size: 2rem;
+    color: rgba(26,26,26,0.10); line-height: 1; flex-shrink: 0; margin-top: 2px;
+  }
+  .exp-body { flex: 1; }
+  .exp-title { font-size: 0.88rem; font-weight: 600; color: var(--ink); margin-bottom: 0.3rem; }
+  .exp-detail { font-size: 0.80rem; font-weight: 300; color: var(--muted); line-height: 1.55; margin-bottom: 0.5rem; }
+  .exp-meta { display: flex; align-items: center; gap: 0.8rem; }
+  .exp-wape { font-family: var(--f-mono); font-size: 0.62rem; font-weight: 500; color: var(--ink); }
+  .exp-badge {
+    font-family: var(--f-mono); font-size: 0.59rem; letter-spacing: 0.08em;
+    text-transform: uppercase; padding: 0.2em 0.65em; border-radius: 2px;
+  }
+  .b-shipped  { background: rgba(58,125,68,0.12); color: #3A7D44; }
+  .b-rejected { background: rgba(232,93,93,0.10); color: var(--accent); }
+  .b-kept     { background: rgba(26,26,26,0.06); color: var(--muted); }
+
+  /* DRIFT TABLE (s05) */
+  .drift-table { margin: 2rem 0; max-width: 500px; }
+  .drift-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0.55rem 0; border-bottom: 1px solid var(--border);
+    font-size: 0.82rem;
+  }
+  .drift-row:last-child { border-bottom: none; }
+  .drift-day { color: var(--muted); }
+  .drift-vals { display: flex; align-items: center; gap: 1rem; }
+  .drift-change { font-family: var(--f-mono); font-size: 0.72rem; font-weight: 600; color: var(--accent); }
+
+  /* DOW BARS (s06) */
+  .dow-grid { display: flex; flex-direction: column; gap: 0.85rem; margin: 2rem 0; max-width: 560px; }
+  .dow-row { display: flex; align-items: center; gap: 0.9rem; }
+  .dow-lbl {
+    font-family: var(--f-mono); font-size: 0.65rem;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--muted); width: 2.6rem; flex-shrink: 0;
+  }
+  .dow-track {
+    flex: 1; height: 8px;
+    background: rgba(26,26,26,0.08); border-radius: 2px; overflow: hidden;
+  }
+  .dow-fill {
+    height: 100%; border-radius: 2px; width: 0%;
+    background: var(--accent);
+    transition: width 1.0s cubic-bezier(0.16,1,0.3,1);
+  }
+  .dow-fill.flat { background: rgba(26,26,26,0.22); }
+  .dow-scale {
+    font-family: var(--f-mono); font-size: 0.65rem; font-weight: 500;
+    color: var(--ink); width: 2.6rem; text-align: right; flex-shrink: 0;
+  }
+  .dow-scale.flat { color: var(--muted); }
+
+  /* NUMBERS */
+  .stats-grid {
+    display: grid; grid-template-columns: repeat(2,1fr);
+    gap: 1.1rem; margin-top: 2.8rem; max-width: 600px;
+  }
+  .stat-card {
+    background: rgba(239,233,217,0.05);
+    border: 1px solid rgba(239,233,217,0.08);
+    border-radius: 4px; padding: 1.7rem 1.4rem;
+  }
+  .stat-val {
+    font-family: var(--f-display);
+    font-size: clamp(40px,5vw,64px); line-height: 1;
+    color: var(--accent); display: block; margin-bottom: 0.5rem;
+  }
+  .stat-lbl {
+    font-family: var(--f-mono); font-size: 0.63rem;
+    letter-spacing: 0.10em; text-transform: uppercase;
+    color: var(--dark-muted); line-height: 1.5;
+  }
+  .stat-sub { font-size: 0.78rem; color: rgba(239,233,217,0.32); margin-top: 0.3rem; }
+
+  /* COMPARISON BARS (s07) */
+  .cmp-grid { display: flex; flex-direction: column; gap: 1.2rem; margin: 2rem 0; max-width: 580px; }
+  .cmp-row { display: flex; align-items: center; gap: 0.9rem; }
+  .cmp-day {
+    font-family: var(--f-mono); font-size: 0.63rem; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--muted); width: 2.4rem; flex-shrink: 0;
+  }
+  .cmp-bars { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+  .cmp-bar-wrap { display: flex; align-items: center; gap: 0.6rem; }
+  .cmp-track {
+    flex: 1; height: 7px; background: rgba(26,26,26,0.08);
+    border-radius: 2px; overflow: hidden;
+  }
+  .cmp-fill {
+    height: 100%; border-radius: 2px; width: 0%;
+    transition: width 0.85s cubic-bezier(0.16,1,0.3,1);
+  }
+  .cmp-fill.mb      { background: var(--accent); }
+  .cmp-fill.hybrid  { background: rgba(26,26,26,0.22); }
+  .cmp-pct {
+    font-family: var(--f-mono); font-size: 0.62rem; font-weight: 500;
+    width: 2.8rem; text-align: right; flex-shrink: 0;
+  }
+  .cmp-pct.mb-pct  { color: var(--accent); }
+  .cmp-pct.hb-pct  { color: var(--muted); }
+  .cmp-legend {
+    display: flex; gap: 1.4rem; margin-bottom: 1rem;
+    font-family: var(--f-mono); font-size: 0.62rem; letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .leg-item { display: flex; align-items: center; gap: 0.4rem; }
+  .leg-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+  .leg-dot.mb     { background: var(--accent); }
+  .leg-dot.hybrid { background: rgba(26,26,26,0.22); }
+  .leg-label { color: var(--muted); }
+  .cmp-summary {
+    display: flex; gap: 1.2rem; margin-top: 1.6rem; max-width: 580px;
+  }
+  .cmp-sum-card {
+    flex: 1; background: var(--paper); border: 1px solid var(--border);
+    border-radius: 4px; padding: 1.1rem 1.2rem; text-align: center;
+  }
+  .cmp-sum-val {
+    font-family: var(--f-display); font-size: 2.6rem; line-height: 1;
+    display: block; margin-bottom: 0.3rem;
+  }
+  .cmp-sum-val.v-mb     { color: var(--accent); }
+  .cmp-sum-val.v-hybrid { color: rgba(26,26,26,0.28); }
+  .cmp-sum-lbl { font-family: var(--f-mono); font-size: 0.60rem; letter-spacing: 0.10em; text-transform: uppercase; color: var(--muted); }
+
+  /* SIGN-OFF */
+  #signoff {
+    padding: 5rem 2.5rem; border-top: 1px solid var(--border);
+    text-align: center; display: flex; flex-direction: column;
+    align-items: center; gap: 1.8rem;
+  }
+  .signoff-lbl {
+    font-family: var(--f-mono); font-size: 0.63rem;
+    letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted);
+  }
+  .signoff-btns { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; }
+  .btn {
+    font-family: var(--f-mono); font-size: 0.68rem;
+    letter-spacing: 0.10em; text-transform: uppercase;
+    text-decoration: none; padding: 0.7em 1.6em;
+    border-radius: 2px; border: 1px solid var(--border);
+    color: var(--muted); transition: all 0.2s;
+  }
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-filled { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+  .btn-filled:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .disclaimer {
+    font-family: var(--f-mono); font-size: 0.58rem;
+    letter-spacing: 0.10em; text-transform: uppercase;
+    color: rgba(26,26,26,0.30); max-width: 520px;
+    text-align: center; line-height: 1.8;
+  }
+
+  /* MOBILE */
+  @media (max-width: 640px) {
+    #hero { padding: 4rem 1.5rem 2rem; }
+    .sec { padding: 4rem 1.5rem; }
+    .trio { flex-direction: column; }
+    .stats-grid { grid-template-columns: 1fr; }
+    #dotnav { display: none; }
+    #back { top: 1.2rem; left: 1.5rem; }
+    .signoff-btns { flex-direction: column; align-items: stretch; }
+  }
+
+  /* REDUCED MOTION */
+  @media (prefers-reduced-motion: reduce) {
+    .reveal { opacity: 1; transform: none; transition: none; }
+    .dow-fill { transition: none; }
+    #cursor { display: none; }
+    html { scroll-behavior: auto; }
+  }
+  </style>
+</head>
+<body>
+
+<div id="progress"></div>
+<div id="cursor"></div>
+
+<nav id="back">
+  <a href="https://blog.vishalbuilds.com">← Blog</a>
+  <a href="https://blog.vishalbuilds.com/stories">Stories</a>
+</nav>
+
+<nav id="dotnav">
+  <div class="dot" data-target="hero"></div>
+  <div class="dot" data-target="s00"></div>
+  <div class="dot" data-target="s01"></div>
+  <div class="dot" data-target="s02"></div>
+  <div class="dot" data-target="s03"></div>
+  <div class="dot" data-target="s04"></div>
+  <div class="dot" data-target="s05"></div>
+  <div class="dot" data-target="s06"></div>
+  <div class="dot" data-target="s07"></div>
+  <div class="dot" data-target="numbers"></div>
+  <div class="dot" data-target="point"></div>
+</nav>
+
+<!-- ═══ HERO ═══ -->
+<section id="hero">
+  <div class="accent-bar"></div>
+  <div></div>
+  <div>
+    <p class="hero-eyebrow">Builder &nbsp;·&nbsp; June 2026</p>
+    <h1 class="hero-title">
+      <span class="t-ink" id="tl1">MODEL</span><br>
+      <span class="t-accent" id="tl2">BOOST</span>
+    </h1>
+    <p class="hero-kicker">Cut forecast error from 40% to 24% without retraining the model.</p>
+    <div class="chips">
+      <span class="chip chip-filled">Builder</span>
+      <span class="chip chip-border">June 2026</span>
+      <span class="chip chip-border">40.4 → 23.8% WAPE</span>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 00 THE SETUP ═══ -->
+<section id="s00" style="border-top: 1px solid var(--border);">
+  <div class="sec">
+    <span class="sec-num reveal">00 ·</span>
+    <span class="sec-label reveal reveal-d1">The Setup</span>
+    <h2 class="big-headline reveal reveal-d1">THE MODEL<br>WAS WORKING</h2>
+    <p class="narrative reveal reveal-d2">XGBoost deployed in late 2025 for hourly call volume forecasting. Trained on data from April 2025. For the first two to three months it tracked well enough: forecasts were close, staffing plans held, no one was complaining.</p>
+    <p class="narrative reveal reveal-d2">Then volume started moving.</p>
+
+    <div class="callout reveal reveal-d3">
+      <span class="callout-lbl">Daily call volume, 2026</span>
+      <div class="example-rows">
+        <div class="example-row">
+          <span class="example-row-label">January 2026</span>
+          <span class="example-row-val">1,214 / day</span>
+        </div>
+        <div class="example-row">
+          <span class="example-row-label">February 2026</span>
+          <span class="example-row-val">1,297 / day</span>
+        </div>
+        <div class="example-row">
+          <span class="example-row-label">March 2026</span>
+          <span class="example-row-val">1,300 / day</span>
+        </div>
+        <div class="example-row">
+          <span class="example-row-label">April 2026</span>
+          <span class="example-row-val hi">1,500 / day</span>
+        </div>
+        <div class="example-row">
+          <span class="example-row-label">May 2026</span>
+          <span class="example-row-val hi">2,007 / day</span>
+        </div>
+      </div>
+    </div>
+
+    <p class="narrative reveal reveal-d4">A 65% ramp in five months. The model, trained on April 2025 patterns, had no way to track it. Adding more features did not close the gap. The issue was not what the model was learning, it was that what it had already learned was stale. It kept predicting around 1,300 calls a day. By May, 2,000 were arriving.</p>
+  </div>
+</section>
+
+<!-- ═══ 01 THE GAP ═══ -->
+<section id="s01">
+  <div class="sec">
+    <span class="sec-num reveal">01 ·</span>
+    <span class="sec-label reveal reveal-d1">The Problem</span>
+    <h2 class="big-headline reveal reveal-d1">THE GAP</h2>
+    <p class="narrative reveal reveal-d2">The model was short. Not randomly, in a pattern. Every weekday. Every week. By <strong>17% on average</strong>, with Fridays reaching <strong>22%</strong>. The staffing plans built on those numbers were consistently too lean.</p>
+    <p class="narrative reveal reveal-d2">When you plan for 1,400 calls and 1,700 arrive, that is not a close miss. That is a planning failure, and it was happening on repeat.</p>
+
+    <div class="callout reveal reveal-d3">
+      <span class="callout-lbl">Tuesday 8pm, April 2026</span>
+      <div class="example-rows">
+        <div class="example-row">
+          <span class="example-row-label">Model learned (Oct–Dec training)</span>
+          <span class="example-row-val">1,200</span>
+        </div>
+        <div class="example-row">
+          <span class="example-row-label">Model predicted</span>
+          <span class="example-row-val">1,350</span>
+        </div>
+        <div class="example-row">
+          <span class="example-row-label">Actual calls arrived</span>
+          <span class="example-row-val hi">1,700</span>
+        </div>
+      </div>
+    </div>
+
+    <p class="narrative reveal reveal-d3">The model was not broken. It was doing exactly what it was trained to do: predicting the volume it had seen before. The problem was that volume had grown, and the model had not.</p>
+    <blockquote class="pull-quote reveal reveal-d4">
+      <p>A 17% systematic underprediction is not a model error. It is a structural gap between when the model was trained and when it is being asked to forecast.</p>
+      <span class="pq-attr">The Gap</span>
+    </blockquote>
+  </div>
+</section>
+
+<!-- ═══ 02 WHY TREES GET STUCK (dark) ═══ -->
+<div id="s02" class="sec-dark-wrap">
+  <div class="sec">
+    <span class="sec-num reveal">02 ·</span>
+    <span class="sec-label reveal reveal-d1">The Mechanism</span>
+    <h2 class="big-headline reveal reveal-d1">WHY TREES GET STUCK</h2>
+    <p class="narrative reveal reveal-d2">XGBoost works by learning leaf means from training data. Every terminal node in every tree holds the average outcome of all the samples that landed there. When the model predicts, it routes your input down trees and returns a weighted sum of those leaf values.</p>
+    <p class="narrative reveal reveal-d2">If your training data comes from a period when Tuesday 8pm averaged 1,200 calls, that is what the leaf holds. Come April, when the same slot is hitting 1,700, the leaf has not moved. The features that could signal recent growth exist, rolling averages, lag features, but they do not outweigh three months of training data anchored to a lower volume regime.</p>
+
+    <div class="trio reveal reveal-d3">
+      <div class="trio-step">
+        <span class="trio-lbl">What it learned</span>
+        <span class="trio-val">1,200</span>
+        <span class="trio-desc">Leaf mean from Oct–Dec training. This is the model's ceiling for that slot.</span>
+      </div>
+      <div class="trio-step">
+        <span class="trio-lbl">What it predicted</span>
+        <span class="trio-val">1,350</span>
+        <span class="trio-desc">Recency features pushed it slightly higher. Not enough to close the gap.</span>
+      </div>
+      <div class="trio-step">
+        <span class="trio-lbl">What arrived</span>
+        <span class="trio-val accent">1,700</span>
+        <span class="trio-desc">350 calls short on a single hour, with no mechanism to self-correct.</span>
+      </div>
+    </div>
+
+    <blockquote class="pull-quote reveal reveal-d4">
+      <p>The question was not how to build a better model. It was how to fix the output.</p>
+      <span class="pq-attr">The Mechanism</span>
+    </blockquote>
+  </div>
+</div>
+
+<!-- ═══ 03 TWO PAPERS ═══ -->
+<section id="s03">
+  <div class="sec">
+    <span class="sec-num reveal">03 ·</span>
+    <span class="sec-label reveal reveal-d1">The Research</span>
+    <h2 class="big-headline reveal reveal-d1">TWO PAPERS,<br>ONE INSIGHT</h2>
+    <p class="narrative reveal reveal-d2">While testing approaches, two pieces of research reframed the problem.</p>
+
+    <div class="paper-card reveal reveal-d2">
+      <span class="paper-card-lbl">M5 Forecasting Competition / Walmart, 42,000 series</span>
+      <p>Gradient boosting was consistently strong at learning stable hourly shape patterns from rich features. Pure ML models that tried to learn both level and shape simultaneously consistently underperformed. The architectures that won <strong>decomposed the problem: one model for level, one for shape.</strong></p>
+    </div>
+
+    <div class="paper-card reveal reveal-d3">
+      <span class="paper-card-lbl">Shen and Huang / Call Center Intraday Forecasting</span>
+      <p>For intraday call volume specifically, the right architecture separates daily level from hourly shape. The model that tries to do both at once either gets the shape wrong or the level wrong. Decompose first, then combine.</p>
+    </div>
+
+    <p class="narrative reveal reveal-d3">Both papers were describing the exact problem in production. The XGBoost model was excellent at shape, the relative pattern of calls across hours within a day was accurate. What it could not do was track the absolute level as volume grew.</p>
+    <p class="narrative reveal reveal-d3">You do not need to replace the model. You need to add a layer above it.</p>
+  </div>
+</section>
+
+<!-- ═══ 04 FOUR EXPERIMENTS ═══ -->
+<section id="s04">
+  <div class="sec">
+    <span class="sec-num reveal">04 ·</span>
+    <span class="sec-label reveal reveal-d1">The Test</span>
+    <h2 class="big-headline reveal reveal-d1">FOUR<br>EXPERIMENTS</h2>
+    <p class="narrative reveal reveal-d2">11 approaches evaluated against an April 2026 holdout. Four that mattered.</p>
+
+    <div class="exp-grid">
+      <div class="exp-card shipped reveal reveal-d2">
+        <span class="exp-n">01</span>
+        <div class="exp-body">
+          <p class="exp-title">DOW Scale Factor, 28-day median</p>
+          <p class="exp-detail">Per day of week, compute the median ratio of actual to model over the last 28 days. Clip to [0.85, 1.50]. Multiply every future prediction for that DOW by its scale. Recomputes on every run, no intervention needed.</p>
+          <div class="exp-meta">
+            <span class="exp-wape">17.9% → 13.7% daily WAPE</span>
+            <span class="exp-badge b-shipped">Shipped</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="exp-card rejected reveal reveal-d2">
+        <span class="exp-n">02</span>
+        <div class="exp-body">
+          <p class="exp-title">ETS Level × XGBoost Shape (M5 architecture)</p>
+          <p class="exp-detail">ETS Holt-Winters forecasts the daily total. XGBoost predicts hourly proportions. Final = ETS daily × shape. The architecture that won M5, tested here. Failed: ETS applied a single growth trend to all days. Weekday volume grew 15-20%. Weekend volume was flat. ETS projected both at weekday rates. Saturday overprediction hit 60-90%.</p>
+          <div class="exp-meta">
+            <span class="exp-wape">30–32% hourly WAPE</span>
+            <span class="exp-badge b-rejected">Rejected</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="exp-card shipped reveal reveal-d3">
+        <span class="exp-n">03</span>
+        <div class="exp-body">
+          <p class="exp-title">Aggregation method: sum vs average vs median vs hourly</p>
+          <p class="exp-detail">4 observations per DOW in 28 days. One outlier day from the March AWS outage moved the sum substantially. Median ignored it. Wednesday gained 7.8pp. Hourly scales (one per DOW × hour slot) overfitted with only 4 observations per slot. Median, one-line change.</p>
+          <div class="exp-meta">
+            <span class="exp-wape">Median: 0.83pp better than sum</span>
+            <span class="exp-badge b-shipped">Shipped</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="exp-card kept reveal reveal-d3">
+        <span class="exp-n">04</span>
+        <div class="exp-body">
+          <p class="exp-title">Window size: 14d through 56d</p>
+          <p class="exp-detail">56 days appeared to win at 12.0% daily WAPE. A sanity check on per-DOW ratio drift between February and March showed that pre-ramp observations were dragging scales down on the exact days that needed the most correction. The 56d result was a data artifact. 28d kept.</p>
+          <div class="exp-meta">
+            <span class="exp-wape">28d wins once artifact removed</span>
+            <span class="exp-badge b-kept">28d kept</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 05 THE 56-DAY TRAP ═══ -->
+<section id="s05">
+  <div class="sec">
+    <span class="sec-num reveal">05 ·</span>
+    <span class="sec-label reveal reveal-d1">The Trap</span>
+    <h2 class="big-headline reveal reveal-d1">THE 56-DAY TRAP</h2>
+    <p class="narrative reveal reveal-d2">The 56-day window looked clean. 0.20pp better on hourly WAPE, 0.70pp better on daily. Easy to ship.</p>
+    <p class="narrative reveal reveal-d2">The data showed something different. Between February and March, the actual-to-model ratio shifted by 0.13 to 0.19 for Monday, Friday, and Thursday, the three highest-volume weekdays. Volume had ramped, concentrated in weekdays. Weekend volume barely moved.</p>
+
+    <div class="callout reveal reveal-d3" style="border-left: 3px solid var(--accent); border-radius: 0 4px 4px 0;">
+      <span class="callout-lbl">Per-DOW ratio drift: Feb vs Mar</span>
+      <div class="drift-table">
+        <div class="drift-row">
+          <span class="drift-day">Monday</span>
+          <div class="drift-vals">
+            <span style="color:var(--muted);font-size:0.80rem;">1.018 → 1.165</span>
+            <span class="drift-change">+0.147</span>
+          </div>
+        </div>
+        <div class="drift-row">
+          <span class="drift-day">Friday</span>
+          <div class="drift-vals">
+            <span style="color:var(--muted);font-size:0.80rem;">1.037 → 1.223</span>
+            <span class="drift-change">+0.186</span>
+          </div>
+        </div>
+        <div class="drift-row">
+          <span class="drift-day">Thursday</span>
+          <div class="drift-vals">
+            <span style="color:var(--muted);font-size:0.80rem;">1.103 → 1.236</span>
+            <span class="drift-change">+0.133</span>
+          </div>
+        </div>
+        <div class="drift-row">
+          <span class="drift-day">Saturday</span>
+          <div class="drift-vals">
+            <span style="color:var(--muted);font-size:0.80rem;">1.178 → 1.080</span>
+            <span style="font-family:var(--f-mono);font-size:0.72rem;font-weight:600;color:var(--muted);">flat</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p class="narrative reveal reveal-d3">Including February in a 56-day window meant the median was averaging across two different volume regimes. On the days that most needed a high correction (high-volume weekdays during a ramp), the 56d median was pulling the scale down.</p>
+    <p class="narrative reveal reveal-d3">There was a second problem. The validation CSV still contained March 18-19 AWS outage rows. The live pipeline already excluded those dates. Once removed, 28d performed equivalently. The 56d "win" was fully explained by two artifacts, neither of which existed in production.</p>
+    <blockquote class="pull-quote reveal reveal-d4">
+      <p>A result that can only be reproduced by keeping the data wrong is not a result.</p>
+      <span class="pq-attr">The Trap</span>
+    </blockquote>
+  </div>
+</section>
+
+<!-- ═══ 06 HOW IT RUNS NOW ═══ -->
+<section id="s06">
+  <div class="sec">
+    <span class="sec-num reveal">06 ·</span>
+    <span class="sec-label reveal reveal-d1">The System</span>
+    <h2 class="big-headline reveal reveal-d1">HOW IT<br>RUNS NOW</h2>
+    <p class="narrative reveal reveal-d2">Every time the model runs, the adjuster reads the last 28 days of actual vs model, computes the median ratio per day of week, clips to [0.85, 1.50], and applies it to every hourly prediction for that DOW in the forward forecast.</p>
+    <p class="narrative reveal reveal-d2">The current live scale factors show the shape of the correction:</p>
+
+    <div class="dow-grid reveal reveal-d3" id="dow-grid"></div>
+
+    <p class="narrative reveal reveal-d3">Every weekday gets a 23-39% lift. Sunday gets a minor downward nudge: XGBoost was slightly over-predicting Sundays, and the scale reflects that. The 1.50 clip prevents overcorrection on data-quality weeks.</p>
+    <p class="narrative reveal reveal-d3">Scales auto-update on every <code style="font-family:var(--f-mono);font-size:0.85em;background:var(--paper);padding:0.1em 0.4em;border-radius:2px;">main.py</code> run as new actuals arrive. No manual steps, no calendar reminders. It runs itself.</p>
+  </div>
+</section>
+
+<!-- ═══ 07 WEEK 23 ═══ -->
+<section id="s07" style="border-top: 1px solid var(--border);">
+  <div class="sec">
+    <span class="sec-num reveal">07 ·</span>
+    <span class="sec-label reveal reveal-d1">Live Data</span>
+    <div class="live-pulse reveal reveal-d1">
+      <div class="lp-dot"></div>
+      <span class="lp-label">Live · Jun 7–13, 2026</span>
+    </div>
+    <h2 class="big-headline reveal reveal-d1">WEEK 23</h2>
+    <p class="narrative reveal reveal-d2">That was the method. Here is Week 23 in production. The Hybrid is the long-range baseline forecast, the number the business would have used before Model Boost. Model Boost won every single day.</p>
+
+    <div class="reveal reveal-d3" id="cmp-wrap">
+      <div class="cmp-legend">
+        <div class="leg-item"><div class="leg-dot mb"></div><span class="leg-label">Model Boost</span></div>
+        <div class="leg-item"><div class="leg-dot hybrid"></div><span class="leg-label">Hybrid (long-range)</span></div>
+      </div>
+      <div class="cmp-grid" id="cmp-grid"></div>
+      <div class="cmp-summary">
+        <div class="cmp-sum-card">
+          <span class="cmp-sum-val v-mb">9.4%</span>
+          <span class="cmp-sum-lbl">Model Boost avg daily err</span>
+        </div>
+        <div class="cmp-sum-card">
+          <span class="cmp-sum-val v-hybrid">22.1%</span>
+          <span class="cmp-sum-lbl">Hybrid avg daily err</span>
+        </div>
+      </div>
+    </div>
+
+    <blockquote class="pull-quote reveal reveal-d4">
+      <p>A long-range forecast anchored to older volume is the baseline. Model Boost, updating every run from the last 28 days, closes the gap between what the business planned and what actually arrived.</p>
+      <span class="pq-attr">Week of June 7–13, 2026</span>
+    </blockquote>
+  </div>
+</section>
+
+<!-- ═══ NUMBERS ═══ -->
+<div id="numbers-wrap">
+  <div class="sec" id="numbers">
+    <span class="sec-num reveal" style="color:var(--dark-muted);">The Numbers ·</span>
+    <h2 class="big-headline reveal reveal-d1">MAY–JUN 2026<br>78,034 CALLS</h2>
+    <div class="stats-grid">
+      <div class="stat-card reveal reveal-d1">
+        <span class="stat-val" data-from="40.4" data-to="23.8" data-sfx="%" data-dec="1">23.8%</span>
+        <span class="stat-lbl">Production WAPE</span>
+        <span class="stat-sub">from 40.4% raw model, 16.6pp gain</span>
+      </div>
+      <div class="stat-card reveal reveal-d2">
+        <span class="stat-val" data-from="31.1" data-to="16.1" data-sfx="%" data-dec="1">16.1%</span>
+        <span class="stat-lbl">June 2026 WAPE</span>
+        <span class="stat-sub">from 31.1% Hybrid, 15pp gain</span>
+      </div>
+      <div class="stat-card reveal reveal-d3">
+        <span class="stat-val" data-from="40.9" data-to="23.7" data-sfx="%" data-dec="1">23.7%</span>
+        <span class="stat-lbl">Friday WAPE</span>
+        <span class="stat-sub">from 40.9% Hybrid, 17.2pp gain</span>
+      </div>
+      <div class="stat-card reveal reveal-d4">
+        <span class="stat-val">Zero</span>
+        <span class="stat-lbl">Manual Updates</span>
+        <span class="stat-sub">scales recompute every run</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ THE POINT OF IT ═══ -->
+<section id="point">
+  <div class="sec">
+    <span class="sec-num reveal">The Point of It ·</span>
+    <h2 class="big-headline reveal reveal-d1">THE MODEL<br>WAS RIGHT</h2>
+    <p class="narrative reveal reveal-d2">That is the part that took a while to accept. XGBoost learned the shape of call volume accurately. When demand peaks within a day, which hours carry the most weight, how Friday afternoons differ from Monday mornings. All of that was right.</p>
+    <p class="narrative reveal reveal-d2">What it could not do was track a sustained volume ramp without being retrained on it. That is not a model failure. It is a structural characteristic of tree-based methods on monotonically growing series. The research had a name for it. The M5 competition had mapped it across 42,000 real-world series. Shen and Huang had mapped the call center version of it in 2007.</p>
+    <p class="narrative reveal reveal-d3">The correction layer does not fix the model. It fixes the output. And because it uses the most recent 28 days of actuals, it adjusts automatically as volume changes: faster than any retraining cycle would, with no manual work.</p>
+    <p class="narrative reveal reveal-d3">There is a whole tradition of decomposing forecasting problems this way. From supply chain to call centers to Walmart's demand planning at scale. Separate what the model is good at from what it is not. Correct the rest with simpler tools that can track what the model cannot.</p>
+    <blockquote class="pull-quote reveal reveal-d4">
+      <p>That is what Model Boost does. It works.</p>
+      <span class="pq-attr">June 2026</span>
+    </blockquote>
+  </div>
+</section>
+
+<!-- ═══ SIGN-OFF ═══ -->
+<div id="signoff">
+  <span class="signoff-lbl">Vishal Gayakwar &nbsp;·&nbsp; June 2026</span>
+  <div class="signoff-btns">
+    <a href="https://blog.vishalbuilds.com/stories" class="btn">← Back to Stories</a>
+    <a href="https://blog.vishalbuilds.com" class="btn btn-filled">Blog</a>
+  </div>
+  <p class="disclaimer">Numbers in this story are indicative. Volume figures, error rates, and improvement metrics reflect real patterns but have been adjusted and are not exact operational data.</p>
+</div>
+
+<script>
+// SCROLL PROGRESS
+const progress = document.getElementById('progress');
+window.addEventListener('scroll', () => {
+  const h = document.documentElement.scrollHeight - window.innerHeight;
+  progress.style.width = (window.scrollY / h * 100) + '%';
+}, { passive: true });
+
+// CURSOR
+const cursor = document.getElementById('cursor');
+let mx = 0, my = 0, cx = 0, cy = 0;
+document.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
+cursor.style.opacity = '0';
+document.addEventListener('mouseenter', () => cursor.style.opacity = '1');
+document.addEventListener('mouseleave', () => cursor.style.opacity = '0');
+(function animCursor() {
+  cx += (mx - cx) * 0.14;
+  cy += (my - cy) * 0.14;
+  cursor.style.left = cx + 'px';
+  cursor.style.top  = cy + 'px';
+  requestAnimationFrame(animCursor);
+})();
+
+// TITLE SCRAMBLE
+const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789#@!%';
+function scramble(el, text, delay) {
+  setTimeout(() => {
+    let start = null;
+    const dur = 900;
+    function step(ts) {
+      if (!start) start = ts;
+      const p = Math.min((ts - start) / dur, 1);
+      const revealed = Math.floor(p * text.length);
+      let out = '';
+      for (let i = 0; i < text.length; i++) {
+        out += i < revealed
+          ? text[i]
+          : CHARS[Math.floor(Math.random() * CHARS.length)];
+      }
+      el.textContent = out;
+      if (p < 1) requestAnimationFrame(step);
+      else el.textContent = text;
+    }
+    requestAnimationFrame(step);
+  }, delay);
+}
+scramble(document.getElementById('tl1'), 'MODEL', 200);
+scramble(document.getElementById('tl2'), 'BOOST', 520);
+
+// REVEALS
+const revEls = document.querySelectorAll('.reveal');
+const revObs = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.10 });
+revEls.forEach(el => revObs.observe(el));
+
+// DOT NAV
+const SECTIONS = ['hero','s00','s01','s02','s03','s04','s05','s06','s07','numbers','point'];
+const dots = document.querySelectorAll('.dot');
+function updateDots() {
+  const mid = window.scrollY + window.innerHeight * 0.45;
+  let active = 0;
+  SECTIONS.forEach((id, i) => {
+    const el = document.getElementById(id);
+    if (el && el.offsetTop <= mid) active = i;
+  });
+  dots.forEach((d, i) => d.classList.toggle('active', i === active));
+}
+window.addEventListener('scroll', updateDots, { passive: true });
+updateDots();
+dots.forEach((dot, i) => {
+  dot.addEventListener('click', () => {
+    const el = document.getElementById(SECTIONS[i]);
+    if (el) el.scrollIntoView({ behavior: 'smooth' });
+  });
+});
+
+// DOW BARS
+const DOW = [
+  { lbl: 'SUN', scale: 0.984, flat: true },
+  { lbl: 'MON', scale: 1.361 },
+  { lbl: 'TUE', scale: 1.230 },
+  { lbl: 'WED', scale: 1.363 },
+  { lbl: 'THU', scale: 1.385 },
+  { lbl: 'FRI', scale: 1.345 },
+  { lbl: 'SAT', scale: 1.205 },
+];
+const MIN_S = 0.85, MAX_S = 1.50;
+const dowGrid = document.getElementById('dow-grid');
+DOW.forEach(d => {
+  const pct = ((d.scale - MIN_S) / (MAX_S - MIN_S) * 100).toFixed(1);
+  const row = document.createElement('div');
+  row.className = 'dow-row';
+  row.innerHTML =
+    `<span class="dow-lbl">${d.lbl}</span>` +
+    `<div class="dow-track"><div class="dow-fill${d.flat ? ' flat' : ''}" data-pct="${pct}"></div></div>` +
+    `<span class="dow-scale${d.flat ? ' flat' : ''}">${d.scale}</span>`;
+  dowGrid.appendChild(row);
+});
+const dowObs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      document.querySelectorAll('.dow-fill').forEach(b => b.style.width = b.dataset.pct + '%');
+      dowObs.disconnect();
+    }
+  });
+}, { threshold: 0.3 });
+dowObs.observe(dowGrid);
+
+// COMPARISON BARS (s07)
+const CMP_DATA = [
+  { day: 'SUN', mb: 3.3,  hybrid: 12.4 },
+  { day: 'MON', mb: 0.2,  hybrid: 14.4 },
+  { day: 'TUE', mb: 12.8, hybrid: 25.3 },
+  { day: 'WED', mb: 9.0,  hybrid: 21.7 },
+  { day: 'THU', mb: 10.2, hybrid: 24.3 },
+  { day: 'FRI', mb: 20.6, hybrid: 32.5 },
+  { day: 'SAT', mb: 9.6,  hybrid: 23.8 },
+];
+const CMP_MAX = 35;
+const cmpGrid = document.getElementById('cmp-grid');
+CMP_DATA.forEach(d => {
+  const row = document.createElement('div');
+  row.className = 'cmp-row';
+  row.innerHTML =
+    `<span class="cmp-day">${d.day}</span>` +
+    `<div class="cmp-bars">` +
+      `<div class="cmp-bar-wrap">` +
+        `<div class="cmp-track"><div class="cmp-fill mb" data-pct="${(d.mb/CMP_MAX*100).toFixed(1)}"></div></div>` +
+        `<span class="cmp-pct mb-pct">${d.mb}%</span>` +
+      `</div>` +
+      `<div class="cmp-bar-wrap">` +
+        `<div class="cmp-track"><div class="cmp-fill hybrid" data-pct="${(d.hybrid/CMP_MAX*100).toFixed(1)}"></div></div>` +
+        `<span class="cmp-pct hb-pct">${d.hybrid}%</span>` +
+      `</div>` +
+    `</div>`;
+  cmpGrid.appendChild(row);
+});
+const cmpObs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      document.querySelectorAll('.cmp-fill').forEach((b, i) => {
+        setTimeout(() => { b.style.width = b.dataset.pct + '%'; }, Math.floor(i/2) * 60);
+      });
+      cmpObs.disconnect();
+    }
+  });
+}, { threshold: 0.25 });
+cmpObs.observe(cmpGrid);
+
+// COUNT-UP
+function countUp(el) {
+  const from = parseFloat(el.dataset.from);
+  const to   = parseFloat(el.dataset.to);
+  const sfx  = el.dataset.sfx || '';
+  const dec  = parseInt(el.dataset.dec || '0');
+  const dur  = 1200;
+  let start  = null;
+  function step(ts) {
+    if (!start) start = ts;
+    const p = Math.min((ts - start) / dur, 1);
+    const ease = 1 - Math.pow(1 - p, 3);
+    el.textContent = (from + (to - from) * ease).toFixed(dec) + sfx;
+    if (p < 1) requestAnimationFrame(step);
+    else el.textContent = to.toFixed(dec) + sfx;
+  }
+  requestAnimationFrame(step);
+}
+const cuObs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting && e.target.dataset.to) {
+      countUp(e.target);
+      cuObs.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.5 });
+document.querySelectorAll('.stat-val[data-to]').forEach(el => cuObs.observe(el));
+</script>
+</body>
+</html>

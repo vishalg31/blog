@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Preview 03 — Creative Mode</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg:     #EFE9D9;
+      --ink:    #0F0F0F;
+      --accent: #E85A1F;
+      --green:  #1F8A4C;
+      --yellow: #F5C518;
+      --muted:  rgba(15, 15, 15, 0.40);
+      --border: rgba(15, 15, 15, 0.10);
+      --f-display: 'Archivo Black', sans-serif;
+      --f-body:    'Space Grotesk', sans-serif;
+      --f-mono:    'JetBrains Mono', monospace;
+    }
+
+    html, body { height: 100%; }
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--f-body);
+      overflow: hidden;
+    }
+
+    .hero {
+      height: 100vh;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 2rem 2.5rem;
+    }
+
+    /* top bar */
+    .hero-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    .back {
+      font-family: var(--f-mono);
+      font-size: 0.68rem;
+      letter-spacing: 0.10em;
+      color: var(--muted);
+      text-decoration: none;
+      text-transform: uppercase;
+    }
+
+    /* accent tag top-right */
+    .top-tag {
+      font-family: var(--f-mono);
+      font-size: 0.64rem;
+      letter-spacing: 0.12em;
+      background: var(--accent);
+      color: #fff;
+      padding: 0.3em 0.8em;
+      border-radius: 2px;
+      text-transform: uppercase;
+    }
+
+    /* bottom content */
+    .hero-bottom {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      max-width: 920px;
+    }
+
+    .eyebrow {
+      font-family: var(--f-mono);
+      font-size: 0.70rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 1rem;
+    }
+
+    .hero-title {
+      font-family: var(--f-display);
+      font-size: clamp(90px, 17vw, 196px);
+      line-height: 0.84;
+      letter-spacing: -0.02em;
+      color: var(--ink);
+      margin-bottom: 1.6rem;
+    }
+    .hero-title .ac { color: var(--accent); }
+    .hero-title .gr { color: var(--green); }
+
+    .hero-kicker {
+      font-family: var(--f-body);
+      font-size: 1.05rem;
+      line-height: 1.60;
+      font-weight: 300;
+      color: var(--muted);
+      max-width: 480px;
+      margin-bottom: 1.8rem;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.50rem;
+      align-items: center;
+    }
+    .chip {
+      font-family: var(--f-mono);
+      font-size: 0.64rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 0.38em 0.9em;
+      border-radius: 2px;
+      font-weight: 500;
+    }
+    .chip-filled {
+      background: var(--accent);
+      color: #fff;
+    }
+    .chip-border {
+      border: 1.5px solid var(--border);
+      color: var(--muted);
+    }
+    .chip-green {
+      border: 1.5px solid rgba(31,138,76,0.3);
+      color: var(--green);
+    }
+
+    /* color block sidebar */
+    .sidebar-blocks {
+      position: absolute;
+      right: 2.5rem;
+      top: 50%;
+      transform: translateY(-50%);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .sb {
+      width: 28px;
+      border-radius: 2px;
+    }
+    .sb-1 { height: 60px; background: var(--accent); }
+    .sb-2 { height: 40px; background: var(--green); }
+    .sb-3 { height: 80px; background: var(--yellow); }
+    .sb-4 { height: 30px; background: rgba(15,15,15,0.12); }
+
+    /* bottom rule */
+    .bottom-rule {
+      position: absolute;
+      bottom: 5rem;
+      left: 2.5rem;
+      right: 2.5rem;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* watermark */
+    .watermark {
+      position: absolute;
+      bottom: 2rem;
+      right: 2.5rem;
+      font-family: var(--f-mono);
+      font-size: 0.60rem;
+      color: rgba(15,15,15,0.18);
+      text-align: right;
+      line-height: 1.6;
+      pointer-events: none;
+    }
+
+    /* subtle grid lines */
+    .hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        repeating-linear-gradient(
+          to right,
+          transparent,
+          transparent 79px,
+          rgba(15,15,15,0.035) 79px,
+          rgba(15,15,15,0.035) 80px
+        );
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="hero">
+    <div class="sidebar-blocks">
+      <div class="sb sb-1"></div>
+      <div class="sb sb-2"></div>
+      <div class="sb sb-3"></div>
+      <div class="sb sb-4"></div>
+    </div>
+
+    <div class="hero-top">
+      <a class="back" href="#">← back</a>
+      <span class="top-tag">Builder</span>
+    </div>
+
+    <div class="hero-bottom">
+      <p class="eyebrow">Builder &nbsp;·&nbsp; June 2026</p>
+      <h1 class="hero-title">ST<span class="ac">O</span><span class="gr">R</span>Y</h1>
+      <p class="hero-kicker">One sentence that tells you what this is about and why it matters to anyone who builds things that actually work.</p>
+      <div class="chips">
+        <span class="chip chip-filled">Builder</span>
+        <span class="chip chip-green">June 2026</span>
+        <span class="chip chip-border">Key stat here</span>
+      </div>
+    </div>
+
+    <div class="bottom-rule"></div>
+
+    <div class="watermark">
+      Creative Mode<br>
+      Cream paper + multi-accent, Archivo Black
+    </div>
+  </div>
+</body>
+</html>

@@ -1,8 +1,23 @@
 [
   {
+    "slug": "model-boost",
+    "title": "MODEL BOOST",
+    "kicker": "Cut forecast error from 40% to 24% without retraining the model.",
+    "category": "Builder",
+    "date": "June 2026",
+    "sortDate": "2026-06-15",
+    "href": "/stories/model-boost.html",
+    "bg": "#EFE9D9",
+    "accent": "#E85D5D",
+    "text": "#1A1A1A",
+    "tagText": "#ffffff",
+    "visual": "model-boost",
+    "ogImage": "/blog/builder/model-boost.jpg"
+  },
+  {
     "slug": "apex",
     "title": "APEX",
-    "kicker": "How I built a browser agent to do the boring work — and what happened when it actually worked.",
+    "kicker": "How I built a browser agent to do the boring work and what happened when it actually worked.",
     "category": "Builder",
     "date": "May 2026",
     "sortDate": "2026-05-13",

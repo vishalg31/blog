@@ -112,7 +112,91 @@ function ApexGraphic() {
   );
 }
 
+function ModelBoostGraphic() {
+  return (
+    <svg
+      viewBox="0 0 480 360"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      style={{ width: "100%", height: "100%", display: "block" }}
+      aria-hidden="true"
+    >
+      {/* Background */}
+      <rect width="480" height="360" fill="#EFE9D9" />
+
+      {/* Subtle horizontal grid */}
+      {[72, 144, 216, 288].map((y) => (
+        <line key={y} x1="0" y1={y} x2="480" y2={y} stroke="rgba(26,26,26,0.05)" strokeWidth="1" />
+      ))}
+
+      {/* Accent bar — top-right, mirrors hero */}
+      <rect x="476" y="0" width="4" height="180" fill="url(#accentGrad)" />
+      <defs>
+        <linearGradient id="accentGrad" x1="0" y1="0" x2="0" y2="1" gradientUnits="objectBoundingBox">
+          <stop offset="0%" stopColor="#E85D5D" />
+          <stop offset="100%" stopColor="#E85D5D" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+
+      {/* "MODEL" wordmark */}
+      <text
+        x="24"
+        y="200"
+        fontFamily="'Bebas Neue', 'Arial Narrow', Arial, sans-serif"
+        fontWeight="400"
+        fontSize="148"
+        letterSpacing="-2"
+        fill="#1A1A1A"
+      >
+        MODEL
+      </text>
+
+      {/* "BOOST" wordmark in accent */}
+      <text
+        x="24"
+        y="328"
+        fontFamily="'Bebas Neue', 'Arial Narrow', Arial, sans-serif"
+        fontWeight="400"
+        fontSize="148"
+        letterSpacing="-2"
+        fill="#E85D5D"
+      >
+        BOOST
+      </text>
+
+      {/* Separator */}
+      <line x1="24" y1="340" x2="456" y2="340" stroke="rgba(26,26,26,0.10)" strokeWidth="1" />
+
+      {/* Bottom label */}
+      <text
+        x="24"
+        y="356"
+        fontFamily="ui-monospace, 'Cascadia Code', monospace"
+        fontSize="10"
+        letterSpacing="2.5"
+        fill="rgba(26,26,26,0.32)"
+      >
+        FORECASTING · 2026
+      </text>
+
+      {/* Stat chip — bottom right */}
+      <text
+        x="456"
+        y="356"
+        fontFamily="ui-monospace, 'Cascadia Code', monospace"
+        fontSize="10"
+        letterSpacing="1.5"
+        fill="rgba(232,93,93,0.65)"
+        textAnchor="end"
+      >
+        40% → 24% WAPE
+      </text>
+    </svg>
+  );
+}
+
 const VISUALS: Record<string, React.ReactNode> = {
+  "model-boost": <ModelBoostGraphic />,
   apex: <ApexGraphic />,
 };
 
