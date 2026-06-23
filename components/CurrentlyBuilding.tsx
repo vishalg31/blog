@@ -2,25 +2,25 @@ import Link from "next/link";
 
 const PROJECTS = [
   {
-    name: "Tailor",
-    desc: "A product to refine CVs based on job descriptions using AI, helping applications feel more targeted, structured, and useful.",
-    progress: 40,
-    status: "Active · In progress",
-    url: null,
-  },
-  {
-    name: "This Blog",
-    desc: "Rebuilding from scratch — custom Next.js, MDX, newspaper design.",
-    progress: 85,
-    status: "Active · v0.1",
-    url: null,
-  },
-  {
-    name: "InvestCore",
-    desc: "A smart investment calculator for SIPs, FDs, and goal planning.",
+    name: "Product Interview QnA",
+    desc: "A library of fully-worked product and strategy interview answers. Read them, or listen.",
     progress: 100,
     status: "Completed · Live",
-    url: "https://invest.vishalbuilds.com/",
+    url: "https://interview.vishalbuilds.com/",
+  },
+  {
+    name: "Echoes",
+    desc: "A music discovery game shaped entirely by your taste.",
+    progress: 100,
+    status: "Completed · Live",
+    url: "https://echoes.vishalbuilds.com/",
+  },
+  {
+    name: "Dak",
+    desc: "Turn raw content into polished, Outlook-ready emails in seconds.",
+    progress: 100,
+    status: "Completed · Live",
+    url: "https://dak.vishalbuilds.com/",
   },
 ];
 
@@ -29,7 +29,7 @@ export default function CurrentlyBuilding() {
     <div className="building-strip">
       <div className="building-header">
         <div className="live-dot" />
-        <h3>Currently Building</h3>
+        <h3>Recently Shipped</h3>
       </div>
       {PROJECTS.map((p) => (
         <div className="building-item" key={p.name}>

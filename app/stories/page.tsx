@@ -3,11 +3,11 @@ import type { Metadata } from "next";
 import stories from "@/stories.json";
 
 export const metadata: Metadata = {
-  title: "Stories — Vishal Builds",
+  title: "Stories · Vishal Builds",
   description:
     "Products and automation stories from Vishal Gayakwar. Long-form accounts of things I've built, broken, and shipped.",
   openGraph: {
-    title: "Stories — Vishal Builds",
+    title: "Stories · Vishal Builds",
     description:
       "Products and automation stories from Vishal Gayakwar.",
     url: "https://blog.vishalbuilds.com/stories",

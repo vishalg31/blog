@@ -23,7 +23,7 @@ export async function generateMetadata({
   const label = CATEGORY_LABELS[category as Category];
   if (!label) return {};
   return {
-    title: `${label} — Ramble On`,
+    title: `${label} · Ramble On`,
     description: CATEGORY_DESCRIPTIONS[category as Category],
   };
 }

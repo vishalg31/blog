@@ -33,7 +33,7 @@ export async function generateMetadata({
   const postUrl = `https://blog.vishalbuilds.com/${post.category}/${post.slug}`;
 
   return {
-    title: `${post.title} — Ramble On`,
+    title: `${post.title} · Ramble On`,
     description: post.description,
     alternates: { canonical: postUrl },
     openGraph: {
